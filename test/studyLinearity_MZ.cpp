@@ -189,6 +189,10 @@ int main(int argc, char** argv)
   {
     treeNameMC = "selected";
     treeNameDA = "selected";
+    if( MCClosure == 1 )
+    {
+      inputFilesDA = inputFilesMC;
+    }
   }
   if( useGlobeNtuple )
   {
@@ -231,14 +235,12 @@ int main(int argc, char** argv)
   std::cout << ">>> Define branch addresses" << std::endl;
   
   // vectors
-  std::vector<double> scE_reg1_MC, scEt_reg1_MC, Rt1_MC, R91_MC, scEta1_MC;
-  std::vector<double> scE_reg2_MC, scEt_reg2_MC, Rt2_MC, R92_MC, scEta2_MC;
-  std::vector<double> scE_reg1_DA, scEt_reg1_DA, Rt1_DA, R91_DA, scEta1_DA;
-  std::vector<double> scE_reg2_DA, scEt_reg2_DA, Rt2_DA, R92_DA, scEta2_DA;
+  std::vector<double> scEta1_MC, scEta2_MC;
+  std::vector<double> scEta1_DA, scEta2_DA;
   std::vector<double> weight_MC, Ht_MC;
   std::vector<double> weight_DA, Ht_DA;
-  std::vector<double> Zpt_MC, mee_MC, Et1_MC, Et2_MC;
-  std::vector<double> Zpt_DA, mee_DA, Et1_DA, Et2_DA;
+  std::vector<double> Zpt_MC, mee_MC, Et1_MC, Et2_MC, R91_MC, R92_MC;
+  std::vector<double> Zpt_DA, mee_DA, Et1_DA, Et2_DA, R91_DA, R92_DA;
   std::vector<double> mee_fit_DA, Et1_fit_DA, Et2_fit_DA;
   std::vector<double> mee_gausFit_DA, Et1_gausFit_DA, Et2_gausFit_DA;
   std::vector<double> mee_mean_DA, Et1_mean_DA, Et2_mean_DA;
@@ -250,7 +252,7 @@ int main(int argc, char** argv)
   float weight;
   bool HLTfire;
   
-  if( useGlobeNtuple == true )
+  if( useGlobeNtuple )
   {
     HLTfire = true;
     
@@ -270,7 +272,7 @@ int main(int argc, char** argv)
     if( std::string(catType) == "MVA") {
       ntu_DA -> SetBranchStatus("category",1); ntu_DA -> SetBranchAddress("category",&cat); }
   }
-  else if( useShervinNtuple )
+  if( useShervinNtuple )
   {
     ntu_MC -> SetBranchStatus("*",0);
     ntu_MC -> SetBranchStatus("HLTfire",  1);   ntu_MC -> SetBranchAddress("HLTfire",&HLTfire);
@@ -281,7 +283,7 @@ int main(int argc, char** argv)
     ntu_DA -> SetBranchStatus("HLTfire",  1);   ntu_DA -> SetBranchAddress("HLTfire",&HLTfire);
     ntu_DA -> SetBranchStatus("runNumber",1);   ntu_DA -> SetBranchAddress("runNumber",&runId);
   }
-  else
+  if( !useGlobeNtuple && !useShervinNtuple )
   {
     HLTfire = true;
     
@@ -310,7 +312,7 @@ int main(int argc, char** argv)
   float scERaw2, scEReg2, scEta2, scPhi2, etaFloat2, phiFloat2, E3x32, R92;
   int eleID1, eleID2;
     
-  if( useGlobeNtuple == true )
+  if( useGlobeNtuple )
   {  
     ntu_DA->SetBranchStatus("pho1_energy_regr",1); ntu_DA->SetBranchAddress("pho1_energy_regr",&scEReg1);
     ntu_DA->SetBranchStatus("pho1_sceta",      1); ntu_DA->SetBranchAddress("pho1_sceta",      &scEta1);
@@ -525,9 +527,10 @@ int main(int argc, char** argv)
   
   std::string plotFolderName = outFilePath + "/" + year + "/";
   gSystem->mkdir(plotFolderName.c_str());
-  plotFolderName += dataLabel + "/";
+  plotFolderName += dataLabel;
   gSystem->mkdir(plotFolderName.c_str());
   
+  plotFolderName += "/MZ_";
   plotFolderName += catType; 
   plotFolderName += "_" + (useGlobeNtuple == true ? std::string("globe") : std::string("nonGlobe"));
   plotFolderName += "_" + MCGen + "-" + (runDepFlag == true ? "runDependent" : "allRange");
@@ -635,7 +638,7 @@ int main(int argc, char** argv)
     if( (category != -1) && (category != cat) ) continue;
     
     
-    if( applyEnergySmearing == true )
+    if( (applyEnergySmearing == true) && (MCClosure == false) )
     {
       float energySmearing1 = gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType));
       float energySmearing2 = gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta2,R92,dataLabel,energySmearingType));
@@ -675,15 +678,6 @@ int main(int argc, char** argv)
     
     
     // fill vectors
-    scE_reg1_MC.push_back(scEReg1);
-    scE_reg2_MC.push_back(scEReg2);
-    
-    scEt_reg1_MC.push_back(scEReg1*Rt1);
-    scEt_reg2_MC.push_back(scEReg2*Rt2);
-    
-    Rt1_MC.push_back(Rt1);
-    Rt2_MC.push_back(Rt2);
-    
     scEta1_MC.push_back(scEta1);
     scEta2_MC.push_back(scEta2);
     
@@ -784,20 +778,17 @@ int main(int argc, char** argv)
     if( cat == -1 ) continue;
     if( (category != -1) && (category != cat) ) continue;
     
-    double inE1 = scEReg1;
-    double inE2 = scEReg2;
+    
     if( MCClosure == true )
     {
       scEReg1 *= ( f_scaleVsEt -> Eval(scEReg1*Rt1) );
       scEReg2 *= ( f_scaleVsEt -> Eval(scEReg2*Rt2) );
     }
-    double corr1, corr2;
-    if( applyEnergyScaleCorr )
+    
+    if( (applyEnergyScaleCorr == true) && (MCClosure == false) )
     {
       scEReg1 *= myScaleCorrector->GetScaleCorrection(scEta1,R91,runId,dataLabel,energyScaleCorrType);
       scEReg2 *= myScaleCorrector->GetScaleCorrection(scEta2,R92,runId,dataLabel,energyScaleCorrType);
-      corr1 = myScaleCorrector->GetScaleCorrection(scEta1,R91,runId,dataLabel,energyScaleCorrType);
-      corr2 = myScaleCorrector->GetScaleCorrection(scEta2,R92,runId,dataLabel,energyScaleCorrType);
     }
     
     if( applyEtaR9Reweighting == true )
@@ -822,15 +813,6 @@ int main(int argc, char** argv)
     TLorentzVector p1; p1.SetPtEtaPhiE(scEReg1*Rt1,eta1,phi1,scEReg1);
     TLorentzVector p2; p2.SetPtEtaPhiE(scEReg2*Rt2,eta2,phi2,scEReg2);
     float mee = sqrt( 4. * scEReg1 * scEReg2 * pow(sin(0.5*(p1.Vect()).Angle(p2.Vect())),2) ) / 91.18;
-    if( mee*91.18 < 40. )
-    {
-      std::cout << "mee: " << mee << " E1: " << scEReg1 << "   E2: " << scEReg2 << std::endl;
-      std::cout << "inE1: " << inE1 << "   inE2: " << inE2 << std::endl;
-      std::cout << "corr1: " << corr1 << "   corr2: " << corr2 << std::endl;
-      std::cout << "eta1: " << scEta1 << "   eta2: " << eta2 << std::endl;
-      std::cout << "R91: " << R91 << "   R92: " << R92 << std::endl;
-      std::cout << "runId: " << runId << std::endl;
-    }
     float Dphi = deltaPhi(scPhi1,scPhi2);
         
     
@@ -841,15 +823,6 @@ int main(int argc, char** argv)
     
     
     // fill vectors
-    scE_reg1_DA.push_back(scEReg1);
-    scE_reg2_DA.push_back(scEReg2);
-    
-    scEt_reg1_DA.push_back(scEReg1*Rt1);
-    scEt_reg2_DA.push_back(scEReg2*Rt2);
-    
-    Rt1_DA.push_back(Rt1);
-    Rt2_DA.push_back(Rt2);
-    
     scEta1_DA.push_back(scEta1);
     scEta2_DA.push_back(scEta2);
     
@@ -1550,8 +1523,6 @@ int main(int argc, char** argv)
         scale_recursiveMean_DAOverMC -> SetPoint(HtBin,x,y);
         scale_recursiveMean_DAOverMC -> SetPointError(HtBin,exlow,exhig,eylow,eyhig);
       }
-      
-      
       
       
       // smallest interval

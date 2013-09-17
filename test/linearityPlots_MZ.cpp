@@ -26,7 +26,7 @@ bool drawFitFunc = true;
 
 std::string analysis  = "CiC";
 std::string fitMethod = "exp";
-std::string directory = "data/2012/Winter2013/CiC_nonGlobe_powheg-runDependent_phoTunedRegV5_Dphi3p15/";
+std::string directory = "data/2012/Winter2013/EoP_stdCat_nonGlobe_powheg-runDependent_phoTunedRegV5_Dphi3p15/";
 
 
 
@@ -93,7 +93,7 @@ int main(int argc, char** argv)
   
   std::string* inFileNames = new std::string[nCat];
   
-  std::string baseFileName = "studyLinearity_MZ_";
+  std::string baseFileName = "studyLinearity_EoP_";
   if( MCClosure == true) baseFileName += "_MCClosure";
   
   

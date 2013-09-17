@@ -27,6 +27,8 @@ $CATType             = $User_Preferences{"CATType"};
 $EVTSPerPoint        = $User_Preferences{"EVTSPerPoint"};
 $ENERGYScaleCorrType = $User_Preferences{"ENERGYScaleCorrType"};
 $ENERGYSmearingType  = $User_Preferences{"ENERGYSmearingType"};
+$MCClosure           = $User_Preferences{"MCClosure"};
+$MCHiggs             = $User_Preferences{"MCHiggs"};
 $DPHIMax             = $User_Preferences{"DPHIMax"};
 $NCats               = $User_Preferences{"NCats"};
 
@@ -48,8 +50,19 @@ if( $RUNDepFlag eq "true" )
   $runDepLabel = "runDependent";
 }
 
+$mcClosureLabel = "";
+if( $MCClosure eq "true" )
+{
+  $mcClosureLabel = "_MCClosure";
+}
 
-$jobDir = $baseDir."/data/".$YEAR."/".$DATALabel."/".$CATType."_".$globeLabel."_".$MCGen."-".$runDepLabel."_".$ENCorrType."_".$DphiLabel."/jobs/";
+$mcHiggsLabel = "";
+if( $MCHiggs eq "true" )
+{
+  $mcHiggsLabel = "_MCHiggs";
+}
+
+$jobDir = $baseDir."/data/".$YEAR."/".$DATALabel."/MZ_".$CATType."_".$globeLabel."_".$MCGen."-".$runDepLabel."_".$ENCorrType."_".$DphiLabel.$mcClosureLabel.$mcHiggsLabel."/jobs/";
 print("jobDir: ".$jobDir."\n");
 
 $command = "mkdir -p ".$jobDir;
@@ -82,6 +95,8 @@ for($cat = 0; $cat < $NCats; ++$cat)
                                  "%g | sed -e s%EVTSPERPOINT%".$evtsPerPoint[$cat].
                                  "%g | sed -e s%ENERGYSCALECORRTYPE%".$ENERGYScaleCorrType.
                                  "%g | sed -e s%ENERGYSMEARINGTYPE%".$ENERGYSmearingType.
+                                 "%g | sed -e s%MCCLOSURE%".$MCClosure.
+                                 "%g | sed -e s%MCHIGGS%".$MCHiggs.
                                  "%g | sed -e s%DPHIMAX%".$DPHIMax.
                                  "%g > ".$jobCfg);
   
