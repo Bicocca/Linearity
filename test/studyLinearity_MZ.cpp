@@ -811,8 +811,8 @@ int main(int argc, char** argv)
     
     if( (applyEnergyScaleCorr == true) && (MCClosure == false) )
     {
-      scEReg1 *= myScaleCorrector->GetScaleCorrection(scEta1,R91,runId,dataLabel,energyScaleCorrType, -1.);
-      scEReg2 *= myScaleCorrector->GetScaleCorrection(scEta2,R92,runId,dataLabel,energyScaleCorrType, -1.);
+      scEReg1 *= myScaleCorrector->GetScaleCorrection(scEta1,R91,runId,dataLabel,energyScaleCorrType, 0.);
+      scEReg2 *= myScaleCorrector->GetScaleCorrection(scEta2,R92,runId,dataLabel,energyScaleCorrType, 0.);
 
 //       std::cout << " err 0 = " << myScaleCorrector->GetScaleCorrection(scEta1,R91,runId,dataLabel,energyScaleCorrType, 0.) << std::endl;
 //       std::cout << " err -1 = " << myScaleCorrector->GetScaleCorrection(scEta1,R91,runId,dataLabel,energyScaleCorrType, -1.) << std::endl;
