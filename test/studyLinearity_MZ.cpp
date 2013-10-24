@@ -122,7 +122,15 @@ int main(int argc, char** argv)
   std::string catType = gConfigParser -> readStringOption("Options::catType");
   int category        = gConfigParser -> readIntOption("Options::category");
   int evtsPerPoint    = gConfigParser -> readIntOption("Options::evtsPerPoint");
+
+  std::vector<float> extHtBinEdges;
+  if(category == 0) extHtBinEdges = gConfigParser -> readFloatListOption("Options::extHtBinEdges0");
+  if(category == 1) extHtBinEdges = gConfigParser -> readFloatListOption("Options::extHtBinEdges1");
+  if(category == 2) extHtBinEdges = gConfigParser -> readFloatListOption("Options::extHtBinEdges2");
+  if(category == 3) extHtBinEdges = gConfigParser -> readFloatListOption("Options::extHtBinEdges3");
   
+
+
   bool MCClosure = gConfigParser -> readBoolOption("Options::MCClosure");
   bool MCHiggs   = gConfigParser -> readBoolOption("Options::MCHiggs");
   
@@ -154,12 +162,13 @@ int main(int argc, char** argv)
   //------------------
   // Fitting functions
   
-  //f_scaleVsEt  = new TF1("f_scaleVsEt", "1.+0.000",0., 1000.);
-  //f_scaleVs2Et = new TF1("f_scaleVsEt", "1.+0.000",0., 1000.);
+//    f_scaleVsEt  = new TF1("f_scaleVsEt", "1.+0.000",0., 1000.);
+//    f_scaleVs2Et = new TF1("f_scaleVsEt", "1.+0.000",0., 1000.);
   
   //f_scaleVsEt  = new TF1("f_scaleVsEt", "1.+0.002",0., 1000.);
   //f_scaleVs2Et = new TF1("f_scaleVsEt", "1.+0.002",0., 1000.);
-  
+ 
+
   f_scaleVsEt = new TF1("f_scaleVsEt", "1. + [0] * (1 - exp(-[1] * (x-45.)) )",0., 1000.);
   f_scaleVsEt -> SetParameters(7.50e-03,2.00e-02);
   
@@ -169,7 +178,18 @@ int main(int argc, char** argv)
   f_scaleVsAvgEt = new TF1("f_scaleVsAvgEt",scaleVsAvgEt,0.,1000.,0);
   f_invScaleVsEt = new TF1("f_invScaleVsEt",invScaleVsEt,0.,1000.,0);
   
-  
+  ///Error funcions
+  TF1* graphError_SmallestInterval = new TF1("graphError_SmallestInterval","[0] + [1]/sqrt(x)", 1., 10000000);
+  if(category == 0) graphError_SmallestInterval->SetParameters(0.000592, 0.0602);
+  if(category == 1) graphError_SmallestInterval->SetParameters(0.000958, 0.0760);
+  if(category == 2) graphError_SmallestInterval->SetParameters(0.00120, 0.0861);
+  if(category == 3) graphError_SmallestInterval->SetParameters(0.00132, 0.105);
+
+  TF1* graphError_RecursiveMean = new TF1("graphError_RecursiveMean","[0] + [1]/sqrt(x)", 1., 10000000);
+  if(category == 0) graphError_RecursiveMean->SetParameters(0.0000221, 0.0413);
+  if(category == 1) graphError_RecursiveMean->SetParameters(0.0000224, 0.0494);
+  if(category == 2) graphError_RecursiveMean->SetParameters(0.0000657, 0.0528);
+  if(category == 3) graphError_RecursiveMean->SetParameters(0.00000772, 0.0618);
   
   
   //----------
@@ -640,8 +660,12 @@ int main(int argc, char** argv)
     
     if( (applyEnergySmearing == true) && (MCClosure == false) )
     {
-      float energySmearing1 = gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType));
-      float energySmearing2 = gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta2,R92,dataLabel,energySmearingType));
+      float energySmearing1 = gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 0.));
+      float energySmearing2 = gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta2,R92,dataLabel,energySmearingType, 0.));
+
+//       std::cout << " >>> err 0 = " << gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 0.)) << std::endl;
+//       std::cout << " >>> err 1 = " << gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 1.)) << std::endl;
+
       scEReg1 *= energySmearing1;
       scEReg2 *= energySmearing2;
     }
@@ -787,8 +811,11 @@ int main(int argc, char** argv)
     
     if( (applyEnergyScaleCorr == true) && (MCClosure == false) )
     {
-      scEReg1 *= myScaleCorrector->GetScaleCorrection(scEta1,R91,runId,dataLabel,energyScaleCorrType);
-      scEReg2 *= myScaleCorrector->GetScaleCorrection(scEta2,R92,runId,dataLabel,energyScaleCorrType);
+      scEReg1 *= myScaleCorrector->GetScaleCorrection(scEta1,R91,runId,dataLabel,energyScaleCorrType, -1.);
+      scEReg2 *= myScaleCorrector->GetScaleCorrection(scEta2,R92,runId,dataLabel,energyScaleCorrType, -1.);
+
+//       std::cout << " err 0 = " << myScaleCorrector->GetScaleCorrection(scEta1,R91,runId,dataLabel,energyScaleCorrType, 0.) << std::endl;
+//       std::cout << " err -1 = " << myScaleCorrector->GetScaleCorrection(scEta1,R91,runId,dataLabel,energyScaleCorrType, -1.) << std::endl;
     }
     
     if( applyEtaR9Reweighting == true )
@@ -891,20 +918,30 @@ int main(int argc, char** argv)
   std::cout << ">>> define bins" << std::endl;
    
   HtBinEdges = new std::vector<double>;
-  HtBinEdges -> push_back( Ht_DA.at(sortedEntries.at(0).entry) );
+
+
+  if(evtsPerPoint > 0){
+    HtBinEdges -> push_back( Ht_DA.at(sortedEntries.at(0).entry) );
   
-  int nBinTempPts = 0;
-  for(int iSaved = 0; iSaved < nSavePts; ++iSaved)
-  {
-    ++nBinTempPts;
-    
-    if( nBinTempPts == evtsPerPoint )
-    {
-      HtBinEdges -> push_back( Ht_DA.at(sortedEntries.at(iSaved).entry) );
-      nBinTempPts = 0;
-    }
+    int nBinTempPts = 0;
+    for(int iSaved = 0; iSaved < nSavePts; ++iSaved)
+      {
+	++nBinTempPts;
+	
+	if( nBinTempPts == evtsPerPoint )
+	  {
+	    HtBinEdges -> push_back( Ht_DA.at(sortedEntries.at(iSaved).entry) );
+	    nBinTempPts = 0;
+	  }
+      }
+    HtBinEdges -> push_back( Ht_DA.at(sortedEntries.at(nSavePts-1).entry) );
   }
-  HtBinEdges -> push_back( Ht_DA.at(sortedEntries.at(nSavePts-1).entry) );
+  else{
+    for(unsigned int posVec = 0; posVec< extHtBinEdges.size(); ++posVec)   
+      HtBinEdges->push_back( extHtBinEdges.at(posVec) );
+  }
+
+
   
   nHtBins = HtBinEdges->size() - 1;
   for(unsigned int i = 0; i < nHtBins; ++i)
@@ -1510,8 +1547,8 @@ int main(int argc, char** argv)
         double scale_DA = 0.;
         double scaleErr_MC = 0.;
         double scaleErr_DA = 0.;
-        FindRecursiveMean(scale_MC,scaleErr_MC,mee_HtBin_MC[HtBin],weight_HtBin_MC[HtBin],5./91.18,0.001);
-        FindRecursiveMean(scale_DA,scaleErr_DA,mee_HtBin_recursiveMean_DA[HtBin],weight_HtBin_recursiveMean_DA[HtBin],5./91.18,0.001);
+        FindRecursiveMean(scale_MC,scaleErr_MC,mee_HtBin_MC[HtBin],weight_HtBin_MC[HtBin],5./91.18,0.0001);
+        FindRecursiveMean(scale_DA,scaleErr_DA,mee_HtBin_recursiveMean_DA[HtBin],weight_HtBin_recursiveMean_DA[HtBin],5./91.18,0.0001);
         double y = scale_DA / scale_MC;
         double eylow = y * sqrt( pow(scaleErr_DA/scale_DA,2) + pow(scaleErr_MC/scale_MC,2) );
         double eyhig = y * sqrt( pow(scaleErr_DA/scale_DA,2) + pow(scaleErr_MC/scale_MC,2) );
@@ -1521,7 +1558,8 @@ int main(int argc, char** argv)
         scale_recursiveMean_DA -> SetPoint(HtBin,x,scale_DA);
         scale_recursiveMean_DA -> SetPointError(HtBin,exlow,exhig,eylow,eyhig);
         scale_recursiveMean_DAOverMC -> SetPoint(HtBin,x,y);
-        scale_recursiveMean_DAOverMC -> SetPointError(HtBin,exlow,exhig,eylow,eyhig);
+	float locErrorGraph = graphError_RecursiveMean->Eval(mee_HtBin_recursiveMean_DA[HtBin].size());
+	scale_recursiveMean_DAOverMC->SetPointError(HtBin,exlow,exhig,locErrorGraph,locErrorGraph);
       }
       
       
@@ -1552,7 +1590,9 @@ int main(int argc, char** argv)
         scale_smallestInterval_DA -> SetPoint(HtBin,x,scale_DA);
         scale_smallestInterval_DA -> SetPointError(HtBin,exlow,exhig,eylow,eyhig);
         scale_smallestInterval_DAOverMC -> SetPoint(HtBin,x,y);
-        scale_smallestInterval_DAOverMC -> SetPointError(HtBin,exlow,exhig,eylow,eyhig);
+	//        scale_smallestInterval_DAOverMC -> SetPointError(HtBin,exlow,exhig,eylow,eyhig);
+	float locErrorGraph = graphError_SmallestInterval->Eval(mee_HtBin_smallestInterval_DA[HtBin].size());
+        scale_smallestInterval_DAOverMC -> SetPointError(HtBin,exlow,exhig,locErrorGraph,locErrorGraph);
       }
     }
     
