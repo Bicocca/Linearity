@@ -173,12 +173,12 @@ int main(int argc, char** argv)
   f_scaleVsEt -> SetParameters(7.50e-03,2.00e-02);
   
   f_scaleVs2Et = new TF1("f_scaleVs2Et", "1. + [0] * (1 - exp(-[1] * (0.5*x-45.)) )",0., 1000.);
-  f_scaleVs2Et -> SetParameters(6.00e-03,2.00e-02);
+  f_scaleVs2Et -> SetParameters(7.50e-03,2.00e-02);
   
   f_scaleVsAvgEt = new TF1("f_scaleVsAvgEt",scaleVsAvgEt,0.,1000.,0);
   f_invScaleVsEt = new TF1("f_invScaleVsEt",invScaleVsEt,0.,1000.,0);
   
-  ///Error funcions
+  ///Error funcions by Stat. toy
   TF1* graphError_SmallestInterval = new TF1("graphError_SmallestInterval","[0] + [1]/sqrt(x)", 1., 10000000);
   if(category == 0) graphError_SmallestInterval->SetParameters(0.000592, 0.0602);
   if(category == 1) graphError_SmallestInterval->SetParameters(0.000958, 0.0760);
@@ -191,6 +191,9 @@ int main(int argc, char** argv)
   if(category == 2) graphError_RecursiveMean->SetParameters(0.0000657, 0.0528);
   if(category == 3) graphError_RecursiveMean->SetParameters(0.00000772, 0.0618);
   
+  ///////////////////////////////////////////////////////////////////////////////////
+  //Inject scale from stdCat in MC and look at DATA in Cic 
+
   
   //----------
   // Get trees
@@ -660,8 +663,8 @@ int main(int argc, char** argv)
     
     if( (applyEnergySmearing == true) && (MCClosure == false) )
     {
-      float energySmearing1 = gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 0.));
-      float energySmearing2 = gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta2,R92,dataLabel,energySmearingType, 0.));
+      float energySmearing1 = gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, -1.));
+      float energySmearing2 = gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta2,R92,dataLabel,energySmearingType, -1.));
 
 //       std::cout << " >>> err 0 = " << gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 0.)) << std::endl;
 //       std::cout << " >>> err 1 = " << gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 1.)) << std::endl;
@@ -1553,13 +1556,36 @@ int main(int argc, char** argv)
         double eylow = y * sqrt( pow(scaleErr_DA/scale_DA,2) + pow(scaleErr_MC/scale_MC,2) );
         double eyhig = y * sqrt( pow(scaleErr_DA/scale_DA,2) + pow(scaleErr_MC/scale_MC,2) );
                 
+	std::cout << " FindRecursiveMean HtBin = " << HtBin << " x = " << x << std::endl; 
+	std::cout << " MC scale = " << scale_MC << std::endl; 
+	std::cout << " DA scale = " << scale_DA << std::endl; 
+	std::cout << " DA/MC scale = " << y << std::endl; 
+
+	if(scale_DA == 0 || scale_MC == 0){
+	  FindRecursiveMean(scale_MC,scaleErr_MC,mee_HtBin_MC[HtBin],weight_HtBin_MC[HtBin],5./h_mee_HtBin_MC[HtBin]->GetMean(),0.0001);
+	  FindRecursiveMean(scale_DA,scaleErr_DA,mee_HtBin_recursiveMean_DA[HtBin],weight_HtBin_recursiveMean_DA[HtBin],5./h_mee_HtBin_recursiveMean_DA[HtBin]->GetMean(),0.0001);
+	  y = scale_DA / scale_MC;
+	  eylow = y * sqrt( pow(scaleErr_DA/scale_DA,2) + pow(scaleErr_MC/scale_MC,2) );
+	  eyhig = y * sqrt( pow(scaleErr_DA/scale_DA,2) + pow(scaleErr_MC/scale_MC,2) );
+                
+	std::cout << " FindRecursiveMean HtBin = " << HtBin << " x = " << x << std::endl; 
+	std::cout << " MC scale = " << scale_MC << std::endl; 
+	std::cout << " DA scale = " << scale_DA << std::endl; 
+	std::cout << " DA/MC scale = " << y << std::endl; 
+
+	}
+
         scale_recursiveMean_MC -> SetPoint(HtBin,x,scale_MC);
         scale_recursiveMean_MC -> SetPointError(HtBin,exlow,exhig,eylow,eyhig);
         scale_recursiveMean_DA -> SetPoint(HtBin,x,scale_DA);
         scale_recursiveMean_DA -> SetPointError(HtBin,exlow,exhig,eylow,eyhig);
+
+	std::cout << " HtBin = " << HtBin << " x = " << x << " y = " << y << std::endl; 
+	std::cout << " HtBin = " << HtBin << " exlow = " << exlow << " exhig = " << exhig << " eylow = " << eylow << " eyhig = " << eyhig << std::endl; 
         scale_recursiveMean_DAOverMC -> SetPoint(HtBin,x,y);
-	float locErrorGraph = graphError_RecursiveMean->Eval(mee_HtBin_recursiveMean_DA[HtBin].size());
-	scale_recursiveMean_DAOverMC->SetPointError(HtBin,exlow,exhig,locErrorGraph,locErrorGraph);
+	//float locErrorGraph = graphError_RecursiveMean->Eval(mee_HtBin_recursiveMean_DA[HtBin].size());
+	//scale_recursiveMean_DAOverMC->SetPointError(HtBin,exlow,exhig,locErrorGraph,locErrorGraph);
+	scale_recursiveMean_DAOverMC->SetPointError(HtBin,exlow,exhig,eylow,eyhig);
       }
       
       
