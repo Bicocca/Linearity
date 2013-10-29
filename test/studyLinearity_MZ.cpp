@@ -191,8 +191,14 @@ int main(int argc, char** argv)
   if(category == 2) graphError_RecursiveMean->SetParameters(0.0000657, 0.0528);
   if(category == 3) graphError_RecursiveMean->SetParameters(0.00000772, 0.0618);
   
-  ///////////////////////////////////////////////////////////////////////////////////
-  //Inject scale from stdCat in MC and look at DATA in Cic 
+//   ///////////////////////////////////////////////////////////////////////////////////
+//   //Inject scale from stdCat in MC and look at DATA in Cic 
+
+// TF1_pol1
+// TF1_pol1_std_cat0.root
+// TF1_pol1_std_cat1.root
+// TF1_pol1_std_cat2.root
+// TF1_pol1_std_cat3.root
 
   
   //----------
@@ -663,8 +669,8 @@ int main(int argc, char** argv)
     
     if( (applyEnergySmearing == true) && (MCClosure == false) )
     {
-      float energySmearing1 = gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, -1.));
-      float energySmearing2 = gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta2,R92,dataLabel,energySmearingType, -1.));
+      float energySmearing1 = gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 0.));
+      float energySmearing2 = gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta2,R92,dataLabel,energySmearingType, 0.));
 
 //       std::cout << " >>> err 0 = " << gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 0.)) << std::endl;
 //       std::cout << " >>> err 1 = " << gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 1.)) << std::endl;
