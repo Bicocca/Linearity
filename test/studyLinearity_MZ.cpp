@@ -106,16 +106,21 @@ int main(int argc, char** argv)
   
   bool applyPUWeight        = gConfigParser -> readBoolOption("Options::applyPUWeight");
   bool applyEnergyScaleCorr = gConfigParser -> readBoolOption("Options::applyEnergyScaleCorr");
+  bool applyEnergyEtScaleCorr = gConfigParser -> readBoolOption("Options::applyEnergyEtScaleCorr");
   bool applyEnergySmearing  = gConfigParser -> readBoolOption("Options::applyEnergySmearing");
+  bool applyEnergyEtSmearing  = gConfigParser -> readBoolOption("Options::applyEnergyEtSmearing");
   bool applyEtaR9Reweighting = gConfigParser -> readBoolOption("Options::applyEtaR9Reweighting");
   
   std::string enCorrType          = gConfigParser -> readStringOption("Options::enCorrType");
   std::string energyScaleCorrType = gConfigParser -> readStringOption("Options::energyScaleCorrType");
+  std::string energyEtScaleCorrType = gConfigParser -> readStringOption("Options::energyEtScaleCorrType");
   std::string energySmearingType  = gConfigParser -> readStringOption("Options::energySmearingType");
   
   std::string runRangeFile        = gConfigParser -> readStringOption("Options::runRangeFile");
   std::string ShervinScaleFile    = gConfigParser -> readStringOption("Options::ShervinScaleFile");
+  std::string ShervinEtScaleFile    = gConfigParser -> readStringOption("Options::ShervinEtScaleFile");
   std::string ShervinSmearingFile = gConfigParser -> readStringOption("Options::ShervinSmearingFile");
+  std::string ShervinEtSmearingFile = gConfigParser -> readStringOption("Options::ShervinEtSmearingFile");
   std::string IJazZGlobalFolder   = gConfigParser -> readStringOption("Options::IJazZGlobalFolder");
   std::string IJazZRunDepFolder   = gConfigParser -> readStringOption("Options::IJazZRunDepFolder");
   
@@ -130,7 +135,7 @@ int main(int argc, char** argv)
   if(category == 3) extHtBinEdges = gConfigParser -> readFloatListOption("Options::extHtBinEdges3");
   
 
-
+  bool DATAClosure = false;
   bool MCClosure = gConfigParser -> readBoolOption("Options::MCClosure");
   bool MCHiggs   = gConfigParser -> readBoolOption("Options::MCHiggs");
   
@@ -162,19 +167,21 @@ int main(int argc, char** argv)
   //------------------
   // Fitting functions
   
-//    f_scaleVsEt  = new TF1("f_scaleVsEt", "1.+0.000",0., 1000.);
-//    f_scaleVs2Et = new TF1("f_scaleVsEt", "1.+0.000",0., 1000.);
+  //    f_scaleVsEt  = new TF1("f_scaleVsEt", "1.+0.000",0., 1000.);
+  //    f_scaleVs2Et = new TF1("f_scaleVsEt", "1.+0.000",0., 1000.);
   
-  //f_scaleVsEt  = new TF1("f_scaleVsEt", "1.+0.002",0., 1000.);
-  //f_scaleVs2Et = new TF1("f_scaleVsEt", "1.+0.002",0., 1000.);
+  //MC Closure scale at 1% ; 0.5%
+  f_scaleVsEt  = new TF1("f_scaleVsEt", "1.-0.01",0., 1000.);
+  f_scaleVs2Et = new TF1("f_scaleVsEt", "1.-0.01",0., 1000.);
  
 
+  /*  // MC Closure
   f_scaleVsEt = new TF1("f_scaleVsEt", "1. + [0] * (1 - exp(-[1] * (x-45.)) )",0., 1000.);
   f_scaleVsEt -> SetParameters(7.50e-03,2.00e-02);
   
   f_scaleVs2Et = new TF1("f_scaleVs2Et", "1. + [0] * (1 - exp(-[1] * (0.5*x-45.)) )",0., 1000.);
   f_scaleVs2Et -> SetParameters(7.50e-03,2.00e-02);
-  
+  */
   f_scaleVsAvgEt = new TF1("f_scaleVsAvgEt",scaleVsAvgEt,0.,1000.,0);
   f_invScaleVsEt = new TF1("f_invScaleVsEt",invScaleVsEt,0.,1000.,0);
   
@@ -194,13 +201,17 @@ int main(int argc, char** argv)
 //   ///////////////////////////////////////////////////////////////////////////////////
 //   //Inject scale from stdCat in MC and look at DATA in Cic 
 
-// TF1_pol1
-// TF1_pol1_std_cat0.root
-// TF1_pol1_std_cat1.root
-// TF1_pol1_std_cat2.root
-// TF1_pol1_std_cat3.root
+  TFile stdCat0("TF1_pol1_MZ/TF1_pol1_stdCat_std_cat0.root", "read");
+  TFile stdCat1("TF1_pol1_MZ/TF1_pol1_stdCat_std_cat1.root", "read");
+  TFile stdCat2("TF1_pol1_MZ/TF1_pol1_stdCat_std_cat2.root", "read");
+  TFile stdCat3("TF1_pol1_MZ/TF1_pol1_stdCat_std_cat3.root", "read");
 
-  
+  std::vector<TF1*>  TF1_stdCat;
+  TF1_stdCat.push_back((TF1*)stdCat0.Get("ET_cat0"));
+  TF1_stdCat.push_back((TF1*)stdCat1.Get("ET_cat1"));
+  TF1_stdCat.push_back((TF1*)stdCat2.Get("ET_cat2"));
+  TF1_stdCat.push_back((TF1*)stdCat3.Get("ET_cat3"));
+
   //----------
   // Get trees
   std::cout << std::endl;
@@ -278,7 +289,8 @@ int main(int argc, char** argv)
   
   // global variables
   int runId,nPU,cat;
-  float weight;
+  float weight; 
+  float mcGenWeight;
   bool HLTfire;
   
   if( useGlobeNtuple )
@@ -307,10 +319,12 @@ int main(int argc, char** argv)
     ntu_MC -> SetBranchStatus("HLTfire",  1);   ntu_MC -> SetBranchAddress("HLTfire",&HLTfire);
     ntu_MC -> SetBranchStatus("runNumber",1);   ntu_MC -> SetBranchAddress("runNumber",&runId);
     ntu_MC -> SetBranchStatus("nPU",      1);   ntu_MC -> SetBranchAddress("nPU",&nPU);
+    ntu_MC -> SetBranchStatus("mcGenWeight",1); ntu_MC -> SetBranchAddress("mcGenWeight",&mcGenWeight);
     
     ntu_DA -> SetBranchStatus("*",0);
     ntu_DA -> SetBranchStatus("HLTfire",  1);   ntu_DA -> SetBranchAddress("HLTfire",&HLTfire);
     ntu_DA -> SetBranchStatus("runNumber",1);   ntu_DA -> SetBranchAddress("runNumber",&runId);
+    ntu_DA -> SetBranchStatus("mcGenWeight",1); ntu_DA -> SetBranchAddress("mcGenWeight",&mcGenWeight);
   }
   if( !useGlobeNtuple && !useShervinNtuple )
   {
@@ -509,12 +523,14 @@ int main(int argc, char** argv)
   std::cout << std::endl;
   std::cout << ">>> Setup data scale corrections" << std::endl;
   
-  ScaleCorrector* myScaleCorrector = new ScaleCorrector(runRangeFile);
+  ScaleCorrector* myScaleCorrector = new ScaleCorrector(runRangeFile, "RunScale");
+  ScaleCorrector* myEtScaleCorrector = new ScaleCorrector(ShervinEtScaleFile, "EtScale");
   
   if( energyScaleCorrType == "shervin" ) myScaleCorrector -> SetShervinRunDepScaleMap(ShervinScaleFile);
   if( energyScaleCorrType == "fabrice" ) myScaleCorrector -> SetIJazZGlobalScaleHisto(IJazZGlobalFolder);
   if( energyScaleCorrType == "fabrice" ) myScaleCorrector -> SetIJazZRunDepScaleHistoMap(IJazZRunDepFolder);
-  
+
+  if( energyEtScaleCorrType == "shervin" ) myEtScaleCorrector -> SetShervinEtDepScaleMap(ShervinEtScaleFile);
   
   
   //-----------------------
@@ -523,9 +539,11 @@ int main(int argc, char** argv)
   std::cout << ">>> Setup MC extrasmearing" << std::endl;
   
   Smearer* mySmearer = new Smearer();
+  Smearer* myEtSmearer = new Smearer();
   
   if( energyScaleCorrType == "shervin" ) mySmearer -> SetShervinExtraSmearingMap(ShervinSmearingFile);
   if( energyScaleCorrType == "fabrice" ) mySmearer -> SetIJazZExtraSmearingHisto(IJazZGlobalFolder);
+  myEtSmearer -> SetShervinEtExtraSmearingMap(ShervinEtSmearingFile);
   
   
   
@@ -644,9 +662,15 @@ int main(int argc, char** argv)
         if( ibin <= 1 ) ibin = 1;
         if( ibin >= (*PUWeights)[periodLabel]->GetNbinsX() ) ibin = (*PUWeights)[periodLabel]->GetNbinsX();
         weight = 1. * (*PUWeights)[periodLabel]->GetBinContent(ibin);
+	if(mcGenWeight != 0) { 
+	  weight *= mcGenWeight;
+	  //	  std::cout << " mcGenWeight = " << mcGenWeight << std::endl;
+	}
       }
     }
     
+
+
     float theta1 = 2*atan(exp(-eta1));
     float theta2 = 2*atan(exp(-eta2));
     float Rt1 = sin(theta1);
@@ -666,11 +690,28 @@ int main(int argc, char** argv)
     if( cat == -1 ) continue;
     if( (category != -1) && (category != cat) ) continue;
     
+
+    if(DATAClosure == true){
+      scEReg1 *= ( TF1_stdCat.at(GetSingleCategory(scEta1,R91))->Eval(scEReg1*Rt1) );
+      scEReg2 *= ( TF1_stdCat.at(GetSingleCategory(scEta2,R92))->Eval(scEReg2*Rt2) );
+    }
     
     if( (applyEnergySmearing == true) && (MCClosure == false) )
     {
       float energySmearing1 = gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 0.));
       float energySmearing2 = gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta2,R92,dataLabel,energySmearingType, 0.));
+
+//       std::cout << " >>> err 0 = " << gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 0.)) << std::endl;
+//       std::cout << " >>> err 1 = " << gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 1.)) << std::endl;
+
+      scEReg1 *= energySmearing1;
+      scEReg2 *= energySmearing2;
+    }
+
+    if( (applyEnergySmearing == false) && (applyEnergyEtSmearing == true) && (MCClosure == false) )
+    {
+      float energySmearing1 = gRandom->Gaus(1.,myEtSmearer->GetEtExtraSmearing(scEta1,R91,dataLabel,scEReg1*Rt1,energySmearingType, 0.));
+      float energySmearing2 = gRandom->Gaus(1.,myEtSmearer->GetEtExtraSmearing(scEta2,R92,dataLabel,scEReg2*Rt2,energySmearingType, 0.));
 
 //       std::cout << " >>> err 0 = " << gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 0.)) << std::endl;
 //       std::cout << " >>> err 1 = " << gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 1.)) << std::endl;
@@ -811,12 +852,13 @@ int main(int argc, char** argv)
     if( cat == -1 ) continue;
     if( (category != -1) && (category != cat) ) continue;
     
-    
     if( MCClosure == true )
     {
       scEReg1 *= ( f_scaleVsEt -> Eval(scEReg1*Rt1) );
       scEReg2 *= ( f_scaleVsEt -> Eval(scEReg2*Rt2) );
     }
+
+    //    std::cout << " 0) scEReg1 = " << scEReg1 << std::endl; 
     
     if( (applyEnergyScaleCorr == true) && (MCClosure == false) )
     {
@@ -826,7 +868,21 @@ int main(int argc, char** argv)
 //       std::cout << " err 0 = " << myScaleCorrector->GetScaleCorrection(scEta1,R91,runId,dataLabel,energyScaleCorrType, 0.) << std::endl;
 //       std::cout << " err -1 = " << myScaleCorrector->GetScaleCorrection(scEta1,R91,runId,dataLabel,energyScaleCorrType, -1.) << std::endl;
     }
-    
+
+//     std::cout << " a) scEReg1 = " << scEReg1 
+// 	      << " corr1 = " << myScaleCorrector->GetScaleCorrection(scEta1,R91,runId,dataLabel,energyScaleCorrType, 0.) << std::endl;
+
+    if( (applyEnergyEtScaleCorr == true) && (MCClosure == false) )
+    {
+      scEReg1 *= myEtScaleCorrector->GetEtScaleCorrection(scEta1,R91,scEReg1*Rt1,dataLabel,energyEtScaleCorrType, 0.);
+      scEReg2 *= myEtScaleCorrector->GetEtScaleCorrection(scEta2,R92,scEReg2*Rt2,dataLabel,energyEtScaleCorrType, 0.);
+
+//      std::cout << " err 0 = " << myEtScaleCorrector->GetEtScaleCorrection(scEta1,R91,scEReg1*Rt1,dataLabel,energyEtScaleCorrType, 0.) << std::endl;
+    }
+
+//     std::cout << " b) scEReg1 = " << scEReg1 
+// 	      << " corr1 = " << myEtScaleCorrector->GetEtScaleCorrection(scEta1,R91,scEReg1*Rt1,dataLabel,energyEtScaleCorrType, 0.) << std::endl;    
+
     if( applyEtaR9Reweighting == true )
     {
       float leadEta = scEta1;
@@ -1556,8 +1612,8 @@ int main(int argc, char** argv)
         double scale_DA = 0.;
         double scaleErr_MC = 0.;
         double scaleErr_DA = 0.;
-        FindRecursiveMean(scale_MC,scaleErr_MC,mee_HtBin_MC[HtBin],weight_HtBin_MC[HtBin],5./91.18,0.0001);
-        FindRecursiveMean(scale_DA,scaleErr_DA,mee_HtBin_recursiveMean_DA[HtBin],weight_HtBin_recursiveMean_DA[HtBin],5./91.18,0.0001);
+        FindRecursiveMean(scale_MC,scaleErr_MC,mee_HtBin_MC[HtBin],weight_HtBin_MC[HtBin],5./91.18,0.0001,-1.);
+        FindRecursiveMean(scale_DA,scaleErr_DA,mee_HtBin_recursiveMean_DA[HtBin],weight_HtBin_recursiveMean_DA[HtBin],5./91.18,0.0001,-1.);
         double y = scale_DA / scale_MC;
         double eylow = y * sqrt( pow(scaleErr_DA/scale_DA,2) + pow(scaleErr_MC/scale_MC,2) );
         double eyhig = y * sqrt( pow(scaleErr_DA/scale_DA,2) + pow(scaleErr_MC/scale_MC,2) );
@@ -1568,8 +1624,8 @@ int main(int argc, char** argv)
 	std::cout << " DA/MC scale = " << y << std::endl; 
 
 	if(scale_DA == 0 || scale_MC == 0){
-	  FindRecursiveMean(scale_MC,scaleErr_MC,mee_HtBin_MC[HtBin],weight_HtBin_MC[HtBin],5./h_mee_HtBin_MC[HtBin]->GetMean(),0.0001);
-	  FindRecursiveMean(scale_DA,scaleErr_DA,mee_HtBin_recursiveMean_DA[HtBin],weight_HtBin_recursiveMean_DA[HtBin],5./h_mee_HtBin_recursiveMean_DA[HtBin]->GetMean(),0.0001);
+	  FindRecursiveMean(scale_MC,scaleErr_MC,mee_HtBin_MC[HtBin],weight_HtBin_MC[HtBin],5./h_mee_HtBin_MC[HtBin]->GetMean(),0.0001, -1.);
+	  FindRecursiveMean(scale_DA,scaleErr_DA,mee_HtBin_recursiveMean_DA[HtBin],weight_HtBin_recursiveMean_DA[HtBin],5./h_mee_HtBin_recursiveMean_DA[HtBin]->GetMean(),0.0001, -1.);
 	  y = scale_DA / scale_MC;
 	  eylow = y * sqrt( pow(scaleErr_DA/scale_DA,2) + pow(scaleErr_MC/scale_MC,2) );
 	  eyhig = y * sqrt( pow(scaleErr_DA/scale_DA,2) + pow(scaleErr_MC/scale_MC,2) );
