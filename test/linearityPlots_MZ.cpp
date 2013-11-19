@@ -25,17 +25,23 @@
 bool MCClosure   = false;
 bool drawFitFunc = true;
 bool rescaleErrors = true;
-bool drawScaleSys = true;
+bool addSyst = false;
+bool drawScaleSys = false;
 bool drawSmearSys = false;
-std::string analysis  = "CiC";
-//std::string analysis = "stdCat";
+bool writeFunctions = true;
+//std::string analysis  = "CiC";
+std::string analysis = "stdCat";
 
 //std::string fitMethod = "exp";
 //std::string fitMethod = "exp3par";
 std::string fitMethod = "pol1";
 //std::string fitMethod = "pol0";
 
-
+//std::string MCSyst = "_Plus1Perc";
+//std::string MCSyst = "_Plus05Perc";
+//std::string MCSyst = "_Plus0Perc";
+//std::string MCSyst = "_Minus05Perc";
+std::string MCSyst = "_Minus1Perc";
 
 int main(int argc, char** argv)
 {
@@ -68,14 +74,45 @@ int main(int argc, char** argv)
   //directories.push_back( "data/2012/Winter2013/MZ_CiC_nonGlobe_powheg-runDependent_phoTunedRegV5_Dphi3p15_10m4_BinErrsOK_P0" );
   //directories.push_back( "data/2012/Winter2013/MZ_CiC_nonGlobe_powheg-runDependent_phoTunedRegV5_Dphi3p15_10m4_BinErrsOK_EXP" );
   unsigned int nDir = directories.size();
+  std::cout << " >>>>>>>>>> nDir = " << nDir << std::endl;
+  float PointY[nCat][4];
+  float PointX[nCat][4];
+  float PointYE[nCat][4];
+  float PointXE[nCat][4];
+
   
-  float* ChiSquareP0_recursiveBinOK = new float[nCat];
-  ChiSquareP0_recursiveBinOK[0] = 1.18625;
-  ChiSquareP0_recursiveBinOK[1] = 1.3776;
-  ChiSquareP0_recursiveBinOK[2] = 0.6807;
-  ChiSquareP0_recursiveBinOK[3] = 1.0199;
-  
-  
+  float SysError[nCat][7];
+  SysError[0][0] = 0.00380885;
+  SysError[0][1] = -0.0366029;
+  SysError[0][2] = -0.179775;
+  SysError[0][3] = -0.289;
+  SysError[0][4] = 0.0616593;
+  SysError[0][5] = -0.00157475;
+  SysError[0][6] = -0.00207482;
+
+  SysError[1][0] = -0.0228756;
+  SysError[1][1] = 0.00991204;
+  SysError[1][2] = -0.196126;
+  SysError[1][3] = -0.489761;
+  SysError[1][4] = 0.0772905;
+  SysError[1][5] = 0.016216;
+  SysError[1][6] = -0.0143245;
+
+  SysError[2][0] = -0.674561;
+  SysError[2][1] = -1.22921;
+  SysError[2][2] = -0.553516;
+  SysError[2][3] = -0.392232;
+  SysError[2][4] = 0.135323;
+  SysError[2][5] = -0.0389127;
+  SysError[2][6] = -0.0323834; 
+
+  SysError[3][0] = -0.931675;
+  SysError[3][1] = -1.20162;
+  SysError[3][2] = -0.576185;
+  SysError[3][3] = -0.456856;
+  SysError[3][4] = 0.182718;
+  SysError[3][5] = -0.016453;
+  SysError[3][6] = -0.00577606; 
   
   //-----------------------------
   // Decide which methods to draw
@@ -148,7 +185,7 @@ int main(int argc, char** argv)
     std::string* inFileNames = new std::string[nCat];
     
     std::string baseFileName = "studyLinearity_MZ_";
-    if( MCClosure == true) directory += "_MCClosure";
+    if( MCClosure == true) directory += "_MCClosure"+MCSyst;
     
     for(int iMeth = 0; iMeth < nMethods; ++iMeth)
     {
@@ -172,6 +209,7 @@ int main(int argc, char** argv)
       double* scale_MZ = new double[nCat];
       
       TGraphAsymmErrors** g = new TGraphAsymmErrors*[nCat];
+      TGraphAsymmErrors** gClone = new TGraphAsymmErrors*[nCat];
       
       TF1** f_fit = new TF1*[nCat];
       TH1F** hint = new TH1F*[nCat];
@@ -191,7 +229,33 @@ int main(int argc, char** argv)
         char graphName[50];
         sprintf(graphName,"step1/scale_%s_DAOverMC",methods.at(iMeth).c_str());
         g[iCat] = (TGraphAsymmErrors*)( f->Get(graphName) );
+        gClone[iCat] = (TGraphAsymmErrors*)( f->Get(graphName) );
         
+	if(addSyst == true){
+	  for(int point = 0; point < g[iCat]->GetN(); ++point){
+	    double ey = g[iCat] -> GetErrorY(point);
+	    double statE2 = pow(ey,2);
+	    double sysE2 = pow(0.01*SysError[iCat][point], 2);
+  	    g[iCat] -> SetPointEYhigh(point, sqrt(statE2 + sysE2) );
+  	    g[iCat] -> SetPointEYlow (point, sqrt(statE2 + sysE2) );
+	  }
+	}
+ 	if(writeFunctions == true && rescaleErrors == true){
+	  
+	  gClone[iCat]->RemovePoint(7);
+	  gClone[iCat]->RemovePoint(6);
+	  gClone[iCat]->RemovePoint(5);
+	  gClone[iCat]->RemovePoint(4);
+	  
+	  /*
+	  g[iCat]->RemovePoint(7);  
+	  g[iCat]->RemovePoint(6);  
+	  g[iCat]->RemovePoint(5);  
+	  g[iCat]->RemovePoint(4);  
+	  */
+ 	}
+	TF1* f_scaleVsEt = (TF1*)( f->Get("f_scaleVsEt") );
+
         if( iDir == 0 ) c[iCat] = new TCanvas();
         c[iCat] -> cd();
         c[iCat] -> SetGridx();
@@ -220,11 +284,17 @@ int main(int argc, char** argv)
         g[iCat] -> SetLineColor(kBlack);
         g[iCat] -> SetLineWidth(1);
         
-	g[iCat] -> SetMinimum(0.9951);
-	g[iCat] -> SetMaximum(1.0049);
-	if(MCClosure == true || analysis == "stdCat"){
-	  g[iCat] -> SetMinimum(0.99);
-	  g[iCat] -> SetMaximum(1.01);
+	if(iCat == 0 || iCat == 1){
+	  g[iCat] -> SetMinimum(0.9951);
+	  g[iCat] -> SetMaximum(1.0049);
+	}
+	else{
+	  g[iCat] -> SetMinimum(0.985);
+	  g[iCat] -> SetMaximum(1.015);
+	}
+	if(MCClosure == true){ 
+	  g[iCat] -> SetMinimum(0.98);
+	  g[iCat] -> SetMaximum(1.02);
         }
         if( drawFitFunc == false )
         {
@@ -242,11 +312,11 @@ int main(int argc, char** argv)
             c_all -> cd(iCat+1);
             g[iCat] -> Draw("P,same");
           }
-          
-          if(MCClosure)
+	 
+          if(MCClosure && drawFitFunc == false)
           {
-            TF1* f_scaleVsEt = new TF1("f_scaleVsEt", "1. + [0] * (1 - exp(-[1] * (0.5*x-45.)) )",0., 1000.);
-            f_scaleVsEt -> SetParameters(7.50e-03,2.00e-02);
+//             TF1* f_scaleVsEt = new TF1("f_scaleVsEt", "1. + [0] * (1 - exp(-[1] * (0.5*x-45.)) )",0., 1000.);
+//             f_scaleVsEt -> SetParameters(7.50e-03,2.00e-02);
 	    //TF1* f_scaleVsEt = new TF1("f_scaleVsEt", "1.+0.000",0., 1000.);
             f_scaleVsEt->SetLineColor(kBlack);
             c[iCat] -> cd();
@@ -273,28 +343,27 @@ int main(int argc, char** argv)
 	  }
         }
         
-        
         char funcName[150];
         sprintf(funcName,"f_prefit_%s_%d",methods.at(iMeth).c_str(),iCat);
         TF1* f_prefit;
         if( fitMethod == "pol0")
         {
-          f_prefit = new TF1(funcName,"[0]",65., 230.);
+          f_prefit = new TF1(funcName,"[0]",55., 230.);
           f_prefit -> SetParameter(0,1.);         
         }
         if( fitMethod == "pol1")
         {
-          f_prefit = new TF1(funcName,"[0]+[1]*(x-90.)",65., 210.);
+          f_prefit = new TF1(funcName,"[0]+[1]*(x-90.)",55., 210.);
           f_prefit -> SetParameters(1.,0.00002);         
         }
         if( fitMethod == "exp3par")
         {
-          f_prefit = new TF1(funcName,"1.+[0]*(1.-exp(-1.*[1]*(x-90.)))+[2]",65., 230.);
+          f_prefit = new TF1(funcName,"1.+[0]*(1.-exp(-1.*[1]*(x-90.)))+[2]",55., 230.);
           f_prefit -> SetParameters(0.005,0.02,0.);
         }
         if( fitMethod == "exp")
         {
-	  f_prefit = new TF1(funcName,"1.+[0]*(1.-exp(-1.*[1]*(x-90.)) )",65., 230.);
+	  f_prefit = new TF1(funcName,"1.+[0]*(1.-exp(-1.*[1]*(x-90.)) )",55., 230.);
           f_prefit -> SetParameters(0.005,0.02);
           f_prefit -> SetParLimits(0,0.,1.);
           f_prefit -> SetParLimits(1,0.,0.05);
@@ -302,7 +371,8 @@ int main(int argc, char** argv)
         
         TFitResultPtr fitResult1;
         int fitStatus1 = -1;
-        g[iCat] -> Fit(funcName,"QRHNS");
+	gClone[iCat] -> Fit(funcName,"QRHNS");
+        //g[iCat] -> Fit(funcName,"QRHNS");
         fitStatus1 = fitResult1;
         
         //std::cout << " fitStatus1 = " << fitStatus1 << std::endl;
@@ -314,10 +384,64 @@ int main(int argc, char** argv)
         {
           for(int point = 0; point < g[iCat]->GetN(); ++point)
           {
- 	    double ey = g[iCat] -> GetErrorY(point);
-            g[iCat] -> SetPointEYhigh(point,ey*sqrt(f_prefit->GetChisquare()/f_prefit->GetNDF()));
-            g[iCat] -> SetPointEYlow (point,ey*sqrt(f_prefit->GetChisquare()/f_prefit->GetNDF()));
-          }
+  	    double ey = g[iCat] -> GetErrorY(point);
+	    if(addSyst == false){
+	      g[iCat] -> SetPointEYhigh(point,ey*sqrt(f_prefit->GetChisquare()/f_prefit->GetNDF()));
+	      g[iCat] -> SetPointEYlow (point,ey*sqrt(f_prefit->GetChisquare()/f_prefit->GetNDF()));
+	  
+	      if(point == 4 || point == 5 || point == 6 || point == 7){
+		g[iCat] -> SetPointEYhigh(point, sqrt(pow(g[iCat] -> GetErrorY(point),2)+pow(0.0005,2)) );
+		g[iCat] -> SetPointEYlow(point, sqrt(pow(g[iCat] -> GetErrorY(point),2)+pow(0.0005,2)) );
+		}
+	  
+	    }
+	    //std::cout << " >>>  prima ey = " << ey  << std::endl;
+
+	    if(SysError[iCat][point] != 0. && addSyst == true){
+	      double statE2 = (pow(ey,2) - pow(0.01*SysError[iCat][point], 2));
+	      //double statE2 = pow(ey,2);
+	      double sysE2 = pow(SysError[iCat][point], 2);
+	      //double sysE2 = pow(SysError[iCat][point], 2);
+	      
+ 	      double errorN2 =  ( (statE2) * (f_prefit->GetChisquare()/f_prefit->GetNDF()) / sysE2 - statE2/sysE2 + 
+				  0.01*(f_prefit->GetChisquare()/f_prefit->GetNDF()) );
+// 	      // 	      double errorN2 =  (statE2 + sysE2) * f_prefit->GetChisquare()/f_prefit->GetNDF() / sysE2 - statE2/sysE2;
+// 	      //	      double errorN2 =  num2/ (f_prefit->GetChisquare()/f_prefit->GetNDF()) / sysE2 - statE2/sysE2;
+
+
+  	      g[iCat] -> SetPointEYhigh(point, sqrt( statE2 + errorN2*sysE2) );
+  	      g[iCat] -> SetPointEYlow (point, sqrt( statE2 + errorN2*sysE2) );
+
+// 	      g[iCat] -> SetPointEYhigh(point, sqrt( statE2 + sysE2) );
+//  	      g[iCat] -> SetPointEYlow (point, sqrt( statE2 + sysE2) );
+ 	      std::cout << " >>>  dopo ey = " << sqrt(statE2 + sysE2) << std::endl;
+
+	    }
+	      /*
+	      double statE2 = (pow(ey,2) - pow(0.0001*SysError[iCat][point], 2));
+	      double errorN2 = ( (pow(ey,2) * f_prefit->GetChisquare()/f_prefit->GetNDF() - statE2 ) /
+				 (pow(0.0001*SysError[iCat][point], 2)) );
+	      if(iCat == 0){
+	      g[iCat] -> SetPointEYhigh(point, sqrt( statE2 + pow(0.0015*SysError[iCat][point], 2)) );
+	      g[iCat] -> SetPointEYlow (point, sqrt( statE2 + pow(0.0015*SysError[iCat][point], 2)) );
+	      }
+	      if(iCat == 1){
+	      g[iCat] -> SetPointEYhigh(point, sqrt( statE2 + pow(0.015*SysError[iCat][point], 2)) );
+	      g[iCat] -> SetPointEYlow (point, sqrt( statE2 + pow(0.015*SysError[iCat][point], 2)) );
+	      }
+	      if(iCat == 2){
+	      g[iCat] -> SetPointEYhigh(point, sqrt( statE2 + pow(0.003*SysError[iCat][point], 2)) );
+	      g[iCat] -> SetPointEYlow (point, sqrt( statE2 + pow(0.003*SysError[iCat][point], 2)) );
+	      }
+	      if(iCat == 3){
+	      g[iCat] -> SetPointEYhigh(point, sqrt( statE2 + pow(0.005*SysError[iCat][point], 2)) );
+	      g[iCat] -> SetPointEYlow (point, sqrt( statE2 + pow(0.005*SysError[iCat][point], 2)) );
+	      }
+	      */
+// 	      std::cout << " >>>  cat >> " << iCat << " point = " << point << " k = " << errorN2 * sqrt(0.0001) << std::endl;
+// 	      std::cout << " >>>  cat >> " << iCat << " point = " << point << " stat = " << sqrt(statE2) << std::endl;
+//	  }
+	  }
         }
         if( drawFitFunc == false && rescaleErrors == true )      
         {
@@ -326,40 +450,62 @@ int main(int argc, char** argv)
  	    for(int point = 0; point < g[iCat]->GetN(); ++point)
             {
               double ey = g[iCat] -> GetErrorY(point);
-//               if(fitMethod == "pol0")
-//               {
-//                 g[iCat] -> SetPointEYhigh(point,ey*ChiSquareP0_recursiveBinOK[iCat]);  
-//                 g[iCat] -> SetPointEYlow (point,ey*ChiSquareP0_recursiveBinOK[iCat]);
-//               }
-//               else
-//               {
-                g[iCat] -> SetPointEYhigh(point,ey*sqrt(f_prefit->GetChisquare()/f_prefit->GetNDF()));
-                g[iCat] -> SetPointEYlow (point,ey*sqrt(f_prefit->GetChisquare()/f_prefit->GetNDF()));
-//              }
-            }
+	      if(addSyst == false){
+		g[iCat] -> SetPointEYhigh(point,ey*sqrt(f_prefit->GetChisquare()/f_prefit->GetNDF()));
+		g[iCat] -> SetPointEYlow (point,ey*sqrt(f_prefit->GetChisquare()/f_prefit->GetNDF()));
+	      }
+	      if(SysError[iCat][point] != 0. && addSyst == true){
+		double statE2 = (pow(ey,2) - pow(0.0001*SysError[iCat][point], 2));
+		double sysE2 = pow(0.0001*SysError[iCat][point], 2);
+		double errorN2 =  (statE2 + sysE2) * f_prefit->GetChisquare()/f_prefit->GetNDF() / sysE2 - statE2/sysE2;
+		
+		g[iCat] -> SetPointEYhigh(point, sqrt( statE2 + errorN2*sysE2) );
+		g[iCat] -> SetPointEYlow (point, sqrt( statE2 + errorN2*sysE2) );
+	      }
+	    }
           }
         }
+	////////////////
+
+	int fitStatus1b = -1;
+        g[iCat] -> Fit(funcName,"QRHNS");
+	fitStatus1b = fitResult1;
+	std::cout << " f_prefit->GetChisquare()/f_prefit->GetNDF() = " << f_prefit->GetChisquare()/f_prefit->GetNDF() << std::endl;
+
+	if( rescaleErrors == true )
+	  {
+	    for(int point = 0; point < g[iCat]->GetN(); ++point)
+	      {
+		double ey = g[iCat] -> GetErrorY(point);
+		if(addSyst == false){
+		  g[iCat] -> SetPointEYhigh(point,ey*sqrt(f_prefit->GetChisquare()/f_prefit->GetNDF()));
+		  g[iCat] -> SetPointEYlow (point,ey*sqrt(f_prefit->GetChisquare()/f_prefit->GetNDF()));
+		}
+	      }
+	  }
+
+	////////////
         
         
         sprintf(funcName,"f_fit_%s_%d",methods.at(iMeth).c_str(),iCat);
         if( fitMethod == "pol0")
         {
-          f_fit[iCat] = new TF1(funcName,"[0]",65., 230.);
+          f_fit[iCat] = new TF1(funcName,"[0]",55., 230.);
           f_fit[iCat] -> SetParameter(0,1.);         
         }
         if( fitMethod == "pol1" )
         {
-	  f_fit[iCat] = new TF1(funcName,"[0]+[1]*(x-90.)",65., 230.);
+	  f_fit[iCat] = new TF1(funcName,"[0]+[1]*(x-90.)",55., 230.);
           f_fit[iCat] -> SetParameters(1.,0.00001);
         }
         if( fitMethod == "exp3par")
         {
-          f_fit[iCat] = new TF1(funcName,"1.+[0]*(1.-exp(-1.*[1]*(x-90.)))+[2]",65., 230.);
+          f_fit[iCat] = new TF1(funcName,"1.+[0]*(1.-exp(-1.*[1]*(x-90.)))+[2]",55., 230.);
           f_fit[iCat] -> SetParameters(0.005,0.02,0.);
         }
         if( fitMethod == "exp")
         {
-          f_fit[iCat] = new TF1(funcName,"1.+[0]*(1.-exp(-1.*[1]*(x-90.)))",65., 230.);
+          f_fit[iCat] = new TF1(funcName,"1.+[0]*(1.-exp(-1.*[1]*(x-90.)))",55., 230.);
           f_fit[iCat] -> SetParameters(0.005,0.02);
         }
         f_fit[iCat] -> SetLineColor(kBlue+2);
@@ -388,12 +534,13 @@ int main(int argc, char** argv)
             }
           }
         }
-        
+	//	g[iCat]->AddPoint(0);
+
         std::cout << " f_fit[iCat]->GetChisquare()/f_fit[iCat]->GetNDF() = " << f_fit[iCat]->GetChisquare()/f_fit[iCat]->GetNDF() << std::endl;
         
         if( drawFitFunc == true )
         {
-          hint[iCat] = new TH1F("hint","",5000,65.,1065.);
+          hint[iCat] = new TH1F("hint","",5000,55.,1055.);
           (TVirtualFitter::GetFitter()) -> GetConfidenceIntervals(hint[iCat],0.68);
           hint[iCat] -> SetMarkerSize(0);
           hint[iCat] -> SetFillColor(kAzure-9);
@@ -415,10 +562,10 @@ int main(int argc, char** argv)
 	  }
 	  g[iCat]->Draw("P,same");
         }
-        
-        if( MCClosure == false )
+            
+        if( MCClosure == false && writeFunctions == true)
 	  {
-	    TFile TF1_defaultDiffNonLin((("TF1_pol1/TF1_"+fitMethod+"_"+analysis+"_"+nameTrial.at(iDir)+Form("_cat%d.root",iCat))).c_str(), "recreate");
+	    TFile TF1_defaultDiffNonLin((("TF1_pol1_EtScale/TF1_"+fitMethod+"_"+analysis+"_"+nameTrial.at(iDir)+Form("_cat%d.root",iCat))).c_str(), "recreate");
           
 	    TF1* defaultDiffNonLinET;
 	    TF1* defaultDiffNonLinHT;
@@ -471,6 +618,20 @@ int main(int argc, char** argv)
 	    defaultDiffNonLinHT -> Write();
 	    TF1_defaultDiffNonLin.Close();
 	  }
+
+	std::cout << " CIAOOOOOOOOO " << std::endl;
+	std::cout << " iCat =  " << iCat << std::endl;
+	std::cout << " iDir =  " << iDir << std::endl;
+
+	if(iCat == 0 && iDir == 1){
+ 	  TFile perTommaso("perRara.root","recreate"); 
+	  // 	  for(int i =0; i<4; ++i){                                         
+ 	    g[iCat]->Write(Form("graph_cat%d",iCat));                               
+	    // 	  }                                                                
+ 	  perTommaso.Close();        
+	} 
+
+
         
         legend[iCat] -> AddEntry(g[iCat],Form("cat. %d",iCat),"PL");
         
@@ -502,8 +663,8 @@ int main(int argc, char** argv)
 		  directories[0].c_str(),analysis.c_str(),(methods.at(iMeth)).c_str(),fitMethod.c_str(),iCat,MCClosureLabel.c_str());
 	  if(drawSmearSys == true) sprintf(pdfName,"%s/scale_%s_%s_%s_cat%d_SmearSys_%sDAOverMC.pdf",
 		  directories[0].c_str(),analysis.c_str(),(methods.at(iMeth)).c_str(),fitMethod.c_str(),iCat,MCClosureLabel.c_str());
-	  if(MCClosure == true)           sprintf(pdfName,"%s_MCClosure/scale_%s_%s_%s_cat%d_%sDAOverMC.pdf",
-                  directories[0].c_str(),analysis.c_str(),(methods.at(iMeth)).c_str(),fitMethod.c_str(),iCat,MCClosureLabel.c_str());
+	  if(MCClosure == true)           sprintf(pdfName,"%s/scale_%s_%s_%s_cat%d_%sDAOverMC.pdf",
+                  directory.c_str(),analysis.c_str(),(methods.at(iMeth)).c_str(),fitMethod.c_str(),iCat,MCClosureLabel.c_str());
           std::cout << ">>> saving file " << pdfName << std::endl;
           c[iCat] -> Print(pdfName,"pdf");
           
@@ -514,10 +675,11 @@ int main(int argc, char** argv)
 		  directories[0].c_str(),analysis.c_str(),(methods.at(iMeth)).c_str(),fitMethod.c_str(),iCat,MCClosureLabel.c_str());
 	  if(drawSmearSys == true) sprintf(pngName,"%s/scale_%s_%s_%s_cat%d_SmearSys_%sDAOverMC.png",
 		  directories[0].c_str(),analysis.c_str(),(methods.at(iMeth)).c_str(),fitMethod.c_str(),iCat,MCClosureLabel.c_str());
-	  if(MCClosure == true)           sprintf(pngName,"%s_MCClosure/scale_%s_%s_%s_cat%d_%sDAOverMC.png",
-                  directories[0].c_str(),analysis.c_str(),(methods.at(iMeth)).c_str(),fitMethod.c_str(),iCat,MCClosureLabel.c_str());
+	  if(MCClosure == true)           sprintf(pngName,"%s/scale_%s_%s_%s_cat%d_%sDAOverMC.png",
+                  directory.c_str(),analysis.c_str(),(methods.at(iMeth)).c_str(),fitMethod.c_str(),iCat,MCClosureLabel.c_str());
           std::cout << ">>> saving file " << pngName << std::endl;
           c[iCat] -> Print(pngName,"png");
+	  std::cout << " >>> pngName = " << pngName << std::endl;
           
           if( iCat == nCat-1 )
           {
@@ -527,8 +689,8 @@ int main(int argc, char** argv)
 	          directories[0].c_str(),analysis.c_str(),(methods.at(iMeth)).c_str(),fitMethod.c_str(),MCClosureLabel.c_str());
 	    if(drawSmearSys == true) sprintf(pdfName,"%s/scale_%s_%s_%s_allCat_SmearSys_%sDAOverMC.pdf",
 		  directories[0].c_str(),analysis.c_str(),(methods.at(iMeth)).c_str(),fitMethod.c_str(),MCClosureLabel.c_str());
-	    if(MCClosure == true)           sprintf(pdfName,"%s_MCClosure/scale_%s_%s_%s_allCat_%sDAOverMC.pdf",
-                  directories[0].c_str(),analysis.c_str(),(methods.at(iMeth)).c_str(),fitMethod.c_str(),MCClosureLabel.c_str());
+	    if(MCClosure == true)           sprintf(pdfName,"%s/scale_%s_%s_%s_allCat_%sDAOverMC.pdf",
+                  directory.c_str(),analysis.c_str(),(methods.at(iMeth)).c_str(),fitMethod.c_str(),MCClosureLabel.c_str());
             std::cout << ">>> saving file " << pdfName << std::endl;
             c_all -> Print(pdfName,"pdf");
             
@@ -538,18 +700,19 @@ int main(int argc, char** argv)
 	          directories[0].c_str(),analysis.c_str(),(methods.at(iMeth)).c_str(),fitMethod.c_str(),MCClosureLabel.c_str());
 	    if(drawSmearSys == true) sprintf(pngName,"%s/scale_%s_%s_%s_allCat_SmearSys_%sDAOverMC.png",
 		  directories[0].c_str(),analysis.c_str(),(methods.at(iMeth)).c_str(),fitMethod.c_str(),MCClosureLabel.c_str());
-	  if(MCClosure == true)           sprintf(pngName,"%s_MCClosure/scale_%s_%s_%s_allCat_%sDAOverMC.png",
-                  directories[0].c_str(),analysis.c_str(),(methods.at(iMeth)).c_str(),fitMethod.c_str(),MCClosureLabel.c_str());
+	  if(MCClosure == true)           sprintf(pngName,"%s/scale_%s_%s_%s_allCat_%sDAOverMC.png",
+                  directory.c_str(),analysis.c_str(),(methods.at(iMeth)).c_str(),fitMethod.c_str(),MCClosureLabel.c_str());
             std::cout << ">>> saving file " << pngName << std::endl;
             c_all -> Print(pngName,"png"); 
+	  std::cout << " >>> All pngName = " << pngName << std::endl;
           }
         }
       }
-    }    
-    //TFile perTommaso("perTommaso.root","recreate");
-    //for(int i =0; i<4; ++i){
-    //  g[i]->Write(Form("graph_cat%d",i));
-    //}
-    //perTommaso.Close();
+//       TFile perTommaso("perTommaso_MZdiagonal_EtDep.root","recreate");
+//       for(int i =0; i<4; ++i){
+// 	g[i]->Write(Form("graph_cat%d",i));
+//       }
+//       perTommaso.Close();
+    }
   }
 }  
