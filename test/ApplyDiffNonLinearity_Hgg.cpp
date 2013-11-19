@@ -49,10 +49,11 @@ int main()
   
   //  std::string methodName = "exp3par";  
   std::string methodName = "pol1";  
-  std::string TF1_folder = "../TF1_"+methodName+"_MZ";
+  //  std::string TF1_folder = "../TF1_"+methodName+"_MZ";
+  std::string TF1_folder = "../TF1_"+methodName+"_EtScale";
 
-    std::string HggCatType = "MVA";
-  //  std::string HggCatType = "CiC";
+  //    std::string HggCatType = "MVA";
+      std::string HggCatType = "CiC";
 
   //std::string analysis  = "CiC"; 
     std::string analysis = "stdCat";
@@ -183,23 +184,23 @@ int main()
     nPar = 2;
   corMatrix[0] = new double[nPar*nPar];
   (corMatrix[0])[0] = 1;
-  (corMatrix[0])[1] = -0.0680281;
-  (corMatrix[0])[2] = -0.0680281;
+  (corMatrix[0])[1] = -0.220997;
+  (corMatrix[0])[2] = -0.220997;
   (corMatrix[0])[3] = 1;
   corMatrix[1] = new double[nPar*nPar];
   (corMatrix[1])[0] = 1.0000e+00;
-  (corMatrix[1])[1] = 0.1849;
-  (corMatrix[1])[2] = 0.1849;
+  (corMatrix[1])[1] = 0.2055;
+  (corMatrix[1])[2] = 0.2055;
   (corMatrix[1])[3] = 1.0000e+00;
   corMatrix[2] = new double[nPar*nPar];
   (corMatrix[2])[0] = 1.0000e+00;
-  (corMatrix[2])[1] = -0.1546;
-  (corMatrix[2])[2] = -0.1546;
+  (corMatrix[2])[1] = -0.2312;
+  (corMatrix[2])[2] = -0.2312;
   (corMatrix[2])[3] = 1.0000e+00;
   corMatrix[3] = new double[nPar*nPar];
   (corMatrix[3])[0] = 1.0000e+00;
-  (corMatrix[3])[1] = -0.1388;
-  (corMatrix[3])[2] = -0.1388;
+  (corMatrix[3])[1] = -0.1619;
+  (corMatrix[3])[2] = -0.1619;
   (corMatrix[3])[3] = 1.0000e+00;
   }
 
@@ -784,9 +785,9 @@ int GetMVAcat(const float& dipho_mva){
 
   if( dipho_mva > 0.52 && dipho_mva < 0.75 ) return 2;
 
-  if( dipho_mva > 0.1 && dipho_mva < 0.52 ) return 3;
+  if( dipho_mva > 0.13 && dipho_mva < 0.52 ) return 3;
 
-  if( dipho_mva > -0.44 && dipho_mva < 0.1 ) return 4;
+  if( dipho_mva > -0.4 && dipho_mva < 0.13 ) return 4;
 
   return -1;
 }
