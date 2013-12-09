@@ -1195,7 +1195,6 @@ int main(int argc, char** argv)
   {   
     if( (ientry%100000 == 0) ) std::cout << "reading   MC entry " << ientry << " / " << MCEntries << "\r" << std::flush;
     
-    std::cout << " >>> Ht_MC.at(ientry) = " << Ht_MC.at(ientry) << std::endl;
 
     int HtBin = MyFindBin(Ht_MC.at(ientry),HtBinEdges);
     if( HtBin == -1 ) continue;
@@ -1205,24 +1204,15 @@ int main(int argc, char** argv)
     if( EtBin1 == -1 ) continue;
     if( EtBin2 == -1 ) continue;
     
-    std::cout << " >>> HtBin = " << HtBin << std::endl;
-    std::cout << " >>> EtBin1 = " << EtBin1 << std::endl;
-    std::cout << " >>> EtBin2 = " << EtBin2 << std::endl;
     mee_HtBin_MC[HtBin].push_back( mee_MC.at(ientry) );
     weight_HtBin_MC[HtBin].push_back( weight_MC.at(ientry) );
     
-    std::cout << " >>> push_back ok " << std::endl;
-
     h_Zpt_HtBin_MC[HtBin] -> Fill( Zpt_MC.at(ientry),weight_MC.at(ientry) );
     h_mee_HtBin_MC[HtBin] -> Fill( mee_MC.at(ientry),weight_MC.at(ientry) );
     h_Ht_HtBin_MC[HtBin]  -> Fill(  Ht_MC.at(ientry),weight_MC.at(ientry) );
 
-    std::cout << " >>> Fill HtBin = " << HtBin << std::endl;    
-
     h_Et_EtBin_MC[EtBin1] -> Fill( Et1_MC.at(ientry),weight_MC.at(ientry) );
-    std::cout << " >>> Fill EtBin1 = " << EtBin1 << std::endl;    
     h_Et_EtBin_MC[EtBin2] -> Fill( Et2_MC.at(ientry),weight_MC.at(ientry) );
-    std::cout << " >>> Fill EtBin2 = " << EtBin2 << std::endl;    
 
     h_scEta_MC -> Fill( scEta1_MC.at(ientry),weight_MC.at(ientry) );
     h_scEta_MC -> Fill( scEta2_MC.at(ientry),weight_MC.at(ientry) );
@@ -1238,7 +1228,6 @@ int main(int argc, char** argv)
     
     h_mee_MC -> Fill( mee_MC.at(ientry)*91.18,weight_MC.at(ientry) );
     h_mee_MC -> Fill( mee_MC.at(ientry)*91.18,weight_MC.at(ientry) );
-    std::cout << " >>> Fill All " << std::endl;    
   }
   std::cout << std::endl;
   
@@ -1832,7 +1821,7 @@ int main(int argc, char** argv)
         if( HtBin == nHtBins-1 ) c_DAOverMC -> Print((outputPdf2_DAMC+"]").c_str());
         delete c_DAOverMC;
         
-
+	/*
 	//////////////
         sprintf(axisTitle,"correction - H_{T} #in [%d,%d]",int(HtBinEdges->at(HtBin)),int(HtBinEdges->at(HtBin+1)));
         h_ScaleCorrections_HtBin[HtBin] -> GetXaxis() -> SetTitle(axisTitle);
@@ -1852,7 +1841,8 @@ int main(int argc, char** argv)
         if( HtBin == nHtBins-1 ) c_DAOverMC -> Print((outputPdfScale_DAMC+"]").c_str());
         delete c_DAOverMC;
 	//////////////        
-        
+        */
+
         c_DAOverMC = new TCanvas("c_mee");
         c_DAOverMC -> cd();
         c_DAOverMC -> SetGridx();
