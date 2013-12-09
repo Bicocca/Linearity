@@ -3,6 +3,7 @@
 #include "geometryUtils.h"
 #include "PUReweighting.h"
 #include "GetScaleCorrection.h"
+#include "EnergyScaleCorrections.h"
 #include "GetExtraSmearing.h"
 #include "GetCategories.h"
 #include "ScaleEstimators.h"
@@ -107,6 +108,8 @@ int main(int argc, char** argv)
   bool applyPUWeight        = gConfigParser -> readBoolOption("Options::applyPUWeight");
   bool applyEnergyScaleCorr = gConfigParser -> readBoolOption("Options::applyEnergyScaleCorr");
   bool applyEnergyEtScaleCorr = gConfigParser -> readBoolOption("Options::applyEnergyEtScaleCorr");
+  bool applyEnergyEtResidualScaleCorr = gConfigParser -> readBoolOption("Options::applyEnergyEtResidualScaleCorr");
+  bool applyEnergyEtS0S5ScaleCorr = gConfigParser -> readBoolOption("Options::applyEnergyEtS0S5ScaleCorr");
   bool applyEnergySmearing  = gConfigParser -> readBoolOption("Options::applyEnergySmearing");
   bool applyEnergyEtSmearing  = gConfigParser -> readBoolOption("Options::applyEnergyEtSmearing");
   bool applyEtaR9Reweighting = gConfigParser -> readBoolOption("Options::applyEtaR9Reweighting");
@@ -114,13 +117,19 @@ int main(int argc, char** argv)
   std::string enCorrType          = gConfigParser -> readStringOption("Options::enCorrType");
   std::string energyScaleCorrType = gConfigParser -> readStringOption("Options::energyScaleCorrType");
   std::string energyEtScaleCorrType = gConfigParser -> readStringOption("Options::energyEtScaleCorrType");
+  std::string energyEtResidualScaleCorrType = gConfigParser -> readStringOption("Options::energyEtResidualScaleCorrType");
+  std::string energyEtS0S5ScaleCorrType = gConfigParser -> readStringOption("Options::energyEtS0S5ScaleCorrType");
   std::string energySmearingType  = gConfigParser -> readStringOption("Options::energySmearingType");
+  std::string energyEtSmearingType  = gConfigParser -> readStringOption("Options::energyEtSmearingType");
   
   std::string runRangeFile        = gConfigParser -> readStringOption("Options::runRangeFile");
   std::string ShervinScaleFile    = gConfigParser -> readStringOption("Options::ShervinScaleFile");
   std::string ShervinEtScaleFile    = gConfigParser -> readStringOption("Options::ShervinEtScaleFile");
+  std::string ShervinEtResidualScaleFile    = gConfigParser -> readStringOption("Options::ShervinEtResidualScaleFile");
+  std::string ShervinEtS0S5ScaleFile    = gConfigParser -> readStringOption("Options::ShervinEtS0S5ScaleFile");
   std::string ShervinSmearingFile = gConfigParser -> readStringOption("Options::ShervinSmearingFile");
   std::string ShervinEtSmearingFile = gConfigParser -> readStringOption("Options::ShervinEtSmearingFile");
+  std::string ShervinEtS0S5SmearingFile = gConfigParser -> readStringOption("Options::ShervinEtS0S5SmearingFile");
   std::string IJazZGlobalFolder   = gConfigParser -> readStringOption("Options::IJazZGlobalFolder");
   std::string IJazZRunDepFolder   = gConfigParser -> readStringOption("Options::IJazZRunDepFolder");
   
@@ -134,6 +143,10 @@ int main(int argc, char** argv)
   if(category == 2) extHtBinEdges = gConfigParser -> readFloatListOption("Options::extHtBinEdges2");
   if(category == 3) extHtBinEdges = gConfigParser -> readFloatListOption("Options::extHtBinEdges3");
   
+  HtBinEdges = new std::vector<double>;
+  for(unsigned int posVec = 0; posVec< extHtBinEdges.size(); ++posVec)
+    HtBinEdges->push_back( extHtBinEdges.at(posVec) );
+  nHtBins = HtBinEdges->size() - 1;
 
   bool DATAClosure = false;
   bool MCClosure = gConfigParser -> readBoolOption("Options::MCClosure");
@@ -171,8 +184,8 @@ int main(int argc, char** argv)
   //    f_scaleVs2Et = new TF1("f_scaleVsEt", "1.+0.000",0., 1000.);
   
   //MC Closure scale at 1% ; 0.5%
-  f_scaleVsEt  = new TF1("f_scaleVsEt", "1.-0.01",0., 1000.);
-  f_scaleVs2Et = new TF1("f_scaleVsEt", "1.-0.01",0., 1000.);
+  f_scaleVsEt  = new TF1("f_scaleVsEt", "1.",0., 1000.);
+  f_scaleVs2Et = new TF1("f_scaleVsEt", "1.",0., 1000.);
  
 
   /*  // MC Closure
@@ -525,12 +538,16 @@ int main(int argc, char** argv)
   
   ScaleCorrector* myScaleCorrector = new ScaleCorrector(runRangeFile, "RunScale");
   ScaleCorrector* myEtScaleCorrector = new ScaleCorrector(ShervinEtScaleFile, "EtScale");
+  ScaleCorrector* myEtResidualScaleCorrector = new ScaleCorrector(ShervinEtResidualScaleFile, "EtResidualScale");
+  EnergyScaleCorrection* myEtS0S5ScaleCorrector = new EnergyScaleCorrection(ShervinEtS0S5ScaleFile);
   
   if( energyScaleCorrType == "shervin" ) myScaleCorrector -> SetShervinRunDepScaleMap(ShervinScaleFile);
   if( energyScaleCorrType == "fabrice" ) myScaleCorrector -> SetIJazZGlobalScaleHisto(IJazZGlobalFolder);
   if( energyScaleCorrType == "fabrice" ) myScaleCorrector -> SetIJazZRunDepScaleHistoMap(IJazZRunDepFolder);
 
   if( energyEtScaleCorrType == "shervin" ) myEtScaleCorrector -> SetShervinEtDepScaleMap(ShervinEtScaleFile);
+  if( energyEtResidualScaleCorrType == "shervin" ) myEtResidualScaleCorrector -> SetShervinEtResidualDepScaleMap(ShervinEtResidualScaleFile);
+  //if( energyEtS0S5ScaleCorrType == "shervin" ) myEtS0S5ScaleCorrector -> SetShervinEtResidualDepScaleMap(ShervinEtResidualScaleFile);
   
   
   //-----------------------
@@ -541,9 +558,11 @@ int main(int argc, char** argv)
   Smearer* mySmearer = new Smearer();
   Smearer* myEtSmearer = new Smearer();
   
-  if( energyScaleCorrType == "shervin" ) mySmearer -> SetShervinExtraSmearingMap(ShervinSmearingFile);
+  //  if( energyScaleCorrType == "shervin" ) mySmearer -> SetShervinExtraSmearingMap(ShervinSmearingFile);
+  if( energySmearingType == "shervin" ) mySmearer -> SetShervinExtraSmearingMap(ShervinSmearingFile);
   if( energyScaleCorrType == "fabrice" ) mySmearer -> SetIJazZExtraSmearingHisto(IJazZGlobalFolder);
-  myEtSmearer -> SetShervinEtExtraSmearingMap(ShervinEtSmearingFile);
+  //  if( energyEtSmearingType == "shervin" )  myEtSmearer -> SetShervinEtExtraSmearingMap(ShervinEtSmearingFile);
+  if( energyEtSmearingType == "shervin" )  myEtSmearer -> SetShervinEtExtraSmearingMap(ShervinEtS0S5SmearingFile);
   
   
   
@@ -593,11 +612,155 @@ int main(int argc, char** argv)
   std::string label = "cat" + std::string(Form("%d",category)) + "_" + std::string(Form("%devtsPerPoint",evtsPerPoint));
   outFile = TFile::Open((plotFolderName+"/studyLinearity_MZ_"+label+".root").c_str(),"RECREATE");
   
+  for(unsigned int i = 0; i < nHtBins; ++i)
+    std::cout << ">>> Ht bin " << i << ":   [" << HtBinEdges->at(i) << "," << HtBinEdges->at(i+1) << "]" << std::endl;
+  std::cout << std::endl;
   
   
+  //define bins  
+  std::cout << ">>> define bins" << std::endl;
+  EtBinEdges = new std::vector<double>;
+  for(unsigned int HtBinEdgeIt = 0; HtBinEdgeIt < HtBinEdges->size(); ++HtBinEdgeIt)
+    EtBinEdges -> push_back( 0.5 * HtBinEdges->at(HtBinEdgeIt) );
+  nEtBins = EtBinEdges->size()-1;
+  //  std::cout << " EtBinEdges size = " << nEtBins << std::endl;  
+
+  for(unsigned int i = 0; i < nEtBins; ++i)
+    std::cout << ">>> Et bin " << i << ":   [" << EtBinEdges->at(i) << "," << EtBinEdges->at(i+1) << "]" << std::endl;
+  std::cout << std::endl;
   
+  HtBinEdgesDouble = new double[HtBinEdges->size()];
+  for(unsigned int i = 0; i < HtBinEdges->size(); ++i) HtBinEdgesDouble[i] = HtBinEdges->at(i);
+  EtBinEdgesDouble = new double[EtBinEdges->size()];
+  for(unsigned int i = 0; i < EtBinEdges->size(); ++i) EtBinEdgesDouble[i] = EtBinEdges->at(i);
+    
+  //------------------
+  // define histograms
+  std::cout << std::endl;
+  std::cout << ">>> define histograms" << std::endl;
   
+  TH1F* h_scEta_MC = new TH1F("h_scEta_MC","",500,-2.5,2.5);
+  h_scEta_MC -> Sumw2();
+  TH1F* h_scEta_DA = new TH1F("h_scEta_DA","",500,-2.5,2.5);
+  h_scEta_DA -> Sumw2();
+  TH1F* h_R9_MC = new TH1F("h_R9_MC","",500,-1.,1.);
+  h_R9_MC -> Sumw2();
+  TH1F* h_R9_DA = new TH1F("h_R9_DA","",500,-1.,1.);
+  h_R9_DA -> Sumw2();
+  TH1F* h_Ht_MC = new TH1F("h_Ht_MC","",500,0.,500.);
+  h_Ht_MC -> Sumw2();
+  TH1F* h_Ht_DA = new TH1F("h_Ht_DA","",500,0.,500.);
+  h_Ht_DA -> Sumw2();
+  TH1F* h_Zpt_MC = new TH1F("h_Zpt_MC","",300,0.,300.);
+  h_Zpt_MC -> Sumw2();
+  TH1F* h_Zpt_DA = new TH1F("h_Zpt_DA","",300,0.,300.);
+  h_Zpt_DA -> Sumw2();
+  TH1F* h_mee_MC = new TH1F("h_mee_MC","",480,60.,120.);
+  h_mee_MC -> Sumw2();
+  TH1F* h_mee_DA = new TH1F("h_mee_DA","",480,60.,120.);
+  h_mee_DA -> Sumw2();
   
+  TGraphAsymmErrors* scale_fit_MC       = new TGraphAsymmErrors();
+  TGraphAsymmErrors* scale_fit_DA       = new TGraphAsymmErrors();
+  TGraphAsymmErrors* scale_fit_DAOverMC = new TGraphAsymmErrors();
+  
+  TGraphAsymmErrors* scale_gausFit_MC       = new TGraphAsymmErrors();
+  TGraphAsymmErrors* scale_gausFit_DA       = new TGraphAsymmErrors();
+  TGraphAsymmErrors* scale_gausFit_DAOverMC = new TGraphAsymmErrors();
+  
+  TGraphAsymmErrors* scale_mean_MC       = new TGraphAsymmErrors();
+  TGraphAsymmErrors* scale_mean_DA       = new TGraphAsymmErrors();
+  TGraphAsymmErrors* scale_mean_DAOverMC = new TGraphAsymmErrors();
+  
+  TGraphAsymmErrors* scale_recursiveMean_MC       = new TGraphAsymmErrors();
+  TGraphAsymmErrors* scale_recursiveMean_DA       = new TGraphAsymmErrors();
+  TGraphAsymmErrors* scale_recursiveMean_DAOverMC = new TGraphAsymmErrors();
+  
+  TGraphAsymmErrors* scale_smallestInterval_MC       = new TGraphAsymmErrors();
+  TGraphAsymmErrors* scale_smallestInterval_DA       = new TGraphAsymmErrors();
+  TGraphAsymmErrors* scale_smallestInterval_DAOverMC = new TGraphAsymmErrors();
+  
+  std::vector<double>* mee_HtBin_MC    = new std::vector<double>[nHtBins];
+  std::vector<double>* weight_HtBin_MC = new std::vector<double>[nHtBins];
+  std::vector<double>* mee_HtBin_DA                      = new std::vector<double>[nHtBins];
+  std::vector<double>* mee_HtBin_fit_DA                  = new std::vector<double>[nHtBins];
+  std::vector<double>* mee_HtBin_gausFit_DA              = new std::vector<double>[nHtBins];
+  std::vector<double>* mee_HtBin_mean_DA                 = new std::vector<double>[nHtBins];
+  std::vector<double>* mee_HtBin_recursiveMean_DA        = new std::vector<double>[nHtBins];
+  std::vector<double>* mee_HtBin_smallestInterval_DA     = new std::vector<double>[nHtBins];
+  std::vector<double>* weight_HtBin_DA                   = new std::vector<double>[nHtBins];
+  std::vector<double>* weight_HtBin_fit_DA               = new std::vector<double>[nHtBins];
+  std::vector<double>* weight_HtBin_gausFit_DA           = new std::vector<double>[nHtBins];
+  std::vector<double>* weight_HtBin_mean_DA              = new std::vector<double>[nHtBins];
+  std::vector<double>* weight_HtBin_recursiveMean_DA     = new std::vector<double>[nHtBins];
+  std::vector<double>* weight_HtBin_smallestInterval_DA  = new std::vector<double>[nHtBins];
+    
+  TH1F** h_ScaleCorrections_HtBin = new TH1F*[nHtBins];
+
+  TH1F** h_Zpt_HtBin_MC = new TH1F*[nHtBins];
+  TH1F** h_Zpt_HtBin_DA = new TH1F*[nHtBins];
+  TH1F** h_mee_HtBin_MC = new TH1F*[nHtBins];
+  TH1F** h_mee_HtBin_DA = new TH1F*[nHtBins];
+  TH1F** h_mee_HtBin_fit_DA = new TH1F*[nHtBins];
+  TH1F** h_mee_HtBin_gausFit_DA = new TH1F*[nHtBins];
+  TH1F** h_mee_HtBin_mean_DA = new TH1F*[nHtBins];
+  TH1F** h_mee_HtBin_recursiveMean_DA = new TH1F*[nHtBins];
+  TH1F** h_mee_HtBin_smallestInterval_DA = new TH1F*[nHtBins];
+  
+  TF1** f_templateFit_HtBin = new TF1*[nHtBins];
+  TF1** f_gausFit_HtBin_MC = new TF1*[nHtBins];
+  TF1** f_gausFit_HtBin_DA = new TF1*[nHtBins];
+  
+  h_Ht_HtBin_MC = new TH1F*[nHtBins]; 
+  for(unsigned int HtBin = 0; HtBin < nHtBins; ++HtBin)
+  {
+    char histoName[50];
+    
+    sprintf(histoName,"h_mee_HtBin%d_MC",HtBin);
+    h_mee_HtBin_MC[HtBin] = new TH1F(histoName,"",nBinsMee,meeMin,meeMax);
+    //h_mee_HtBin_MC[HtBin] -> SetFillColor(kGreen+2);
+    //h_mee_HtBin_MC[HtBin] -> SetFillStyle(3004);
+    //h_mee_HtBin_MC[HtBin] -> SetMarkerStyle(7);
+    //h_mee_HtBin_MC[HtBin] -> SetMarkerColor(kGreen+2);
+    //h_mee_HtBin_MC[HtBin] -> SetLineColor(kGreen+2);
+    h_mee_HtBin_MC[HtBin]->Sumw2();
+    
+    sprintf(histoName, "h_ScaleCorrections_HtBin%dC",HtBin);
+    h_ScaleCorrections_HtBin[HtBin] = new TH1F(histoName,"",4000,0.,2.);
+    h_ScaleCorrections_HtBin[HtBin] -> SetLineColor(kGreen+2);
+    h_ScaleCorrections_HtBin[HtBin] -> Sumw2();
+    
+    sprintf(histoName, "h_Zpt_HtBin%d_MC",HtBin);
+    h_Zpt_HtBin_MC[HtBin] = new TH1F(histoName,"",300,0.,300.);
+    h_Zpt_HtBin_MC[HtBin] -> SetLineColor(kGreen+2);
+    h_Zpt_HtBin_MC[HtBin] -> Sumw2();
+    
+    sprintf(histoName, "Ht_HtBin%d_MC",HtBin);
+    h_Ht_HtBin_MC[HtBin] = new TH1F(histoName,"",5000,0.,1000.);
+    h_Ht_HtBin_MC[HtBin] -> SetLineColor(kGreen+2);
+    h_Ht_HtBin_MC[HtBin] -> Sumw2();
+  }  
+  
+  // define Et histogram
+  h_Et_EtBin_MC = new TH1F*[nEtBins];
+  h_Et_EtBin_DA = new TH1F*[nEtBins];
+  h_Et_EtBin_fit_DA = new TH1F*[nEtBins];
+  h_Et_EtBin_gausFit_DA = new TH1F*[nEtBins];
+  h_Et_EtBin_mean_DA = new TH1F*[nEtBins];
+  h_Et_EtBin_recursiveMean_DA = new TH1F*[nEtBins];
+  h_Et_EtBin_smallestInterval_DA = new TH1F*[nEtBins];
+
+  for(unsigned int EtBin = 0; EtBin < nEtBins; ++EtBin)
+  {
+    char histoName[50];
+    
+    sprintf(histoName, "Et_EtBin%d_MC",EtBin);
+    h_Et_EtBin_MC[EtBin] = new TH1F(histoName,"",5000,0.,1000.);
+    h_Et_EtBin_MC[EtBin] -> SetLineColor(kGreen+2);
+    h_Et_EtBin_MC[EtBin] -> Sumw2();
+  }
+
+
   //-----------------
   // Loop over events
   std::cout << std::endl;
@@ -675,6 +838,8 @@ int main(int argc, char** argv)
     float theta2 = 2*atan(exp(-eta2));
     float Rt1 = sin(theta1);
     float Rt2 = sin(theta2);
+    bool isEB1 = false;
+    bool isEB2 = false;
     
     
     // selections
@@ -690,6 +855,8 @@ int main(int argc, char** argv)
     if( cat == -1 ) continue;
     if( (category != -1) && (category != cat) ) continue;
     
+    if( fabs(scEta1) < 1.4442) isEB1 = true;
+    if( fabs(scEta2) < 1.4442) isEB2 = true;
 
     if(DATAClosure == true){
       scEReg1 *= ( TF1_stdCat.at(GetSingleCategory(scEta1,R91))->Eval(scEReg1*Rt1) );
@@ -701,9 +868,6 @@ int main(int argc, char** argv)
       float energySmearing1 = gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 0.));
       float energySmearing2 = gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta2,R92,dataLabel,energySmearingType, 0.));
 
-//       std::cout << " >>> err 0 = " << gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 0.)) << std::endl;
-//       std::cout << " >>> err 1 = " << gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 1.)) << std::endl;
-
       scEReg1 *= energySmearing1;
       scEReg2 *= energySmearing2;
     }
@@ -712,9 +876,6 @@ int main(int argc, char** argv)
     {
       float energySmearing1 = gRandom->Gaus(1.,myEtSmearer->GetEtExtraSmearing(scEta1,R91,dataLabel,scEReg1*Rt1,energySmearingType, 0.));
       float energySmearing2 = gRandom->Gaus(1.,myEtSmearer->GetEtExtraSmearing(scEta2,R92,dataLabel,scEReg2*Rt2,energySmearingType, 0.));
-
-//       std::cout << " >>> err 0 = " << gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 0.)) << std::endl;
-//       std::cout << " >>> err 1 = " << gRandom->Gaus(1.,mySmearer->GetExtraSmearing(scEta1,R91,dataLabel,energySmearingType, 1.)) << std::endl;
 
       scEReg1 *= energySmearing1;
       scEReg2 *= energySmearing2;
@@ -837,7 +998,8 @@ int main(int argc, char** argv)
     float theta2 = 2*atan(exp(-eta2));
     float Rt1 = sin(theta1);
     float Rt2 = sin(theta2);
-    
+    bool isEB1 = false;
+    bool isEB2 = false;
     
     // selections
     if( !HLTfire ) continue;
@@ -852,36 +1014,49 @@ int main(int argc, char** argv)
     if( cat == -1 ) continue;
     if( (category != -1) && (category != cat) ) continue;
     
+    if( fabs(scEta1) < 1.4442) isEB1 = true;
+    if( fabs(scEta2) < 1.4442) isEB2 = true;
+
     if( MCClosure == true )
     {
       scEReg1 *= ( f_scaleVsEt -> Eval(scEReg1*Rt1) );
       scEReg2 *= ( f_scaleVsEt -> Eval(scEReg2*Rt2) );
     }
 
-    //    std::cout << " 0) scEReg1 = " << scEReg1 << std::endl; 
     
     if( (applyEnergyScaleCorr == true) && (MCClosure == false) )
     {
       scEReg1 *= myScaleCorrector->GetScaleCorrection(scEta1,R91,runId,dataLabel,energyScaleCorrType, 0.);
       scEReg2 *= myScaleCorrector->GetScaleCorrection(scEta2,R92,runId,dataLabel,energyScaleCorrType, 0.);
-
-//       std::cout << " err 0 = " << myScaleCorrector->GetScaleCorrection(scEta1,R91,runId,dataLabel,energyScaleCorrType, 0.) << std::endl;
-//       std::cout << " err -1 = " << myScaleCorrector->GetScaleCorrection(scEta1,R91,runId,dataLabel,energyScaleCorrType, -1.) << std::endl;
     }
 
-//     std::cout << " a) scEReg1 = " << scEReg1 
-// 	      << " corr1 = " << myScaleCorrector->GetScaleCorrection(scEta1,R91,runId,dataLabel,energyScaleCorrType, 0.) << std::endl;
 
     if( (applyEnergyEtScaleCorr == true) && (MCClosure == false) )
     {
       scEReg1 *= myEtScaleCorrector->GetEtScaleCorrection(scEta1,R91,scEReg1*Rt1,dataLabel,energyEtScaleCorrType, 0.);
       scEReg2 *= myEtScaleCorrector->GetEtScaleCorrection(scEta2,R92,scEReg2*Rt2,dataLabel,energyEtScaleCorrType, 0.);
-
-//      std::cout << " err 0 = " << myEtScaleCorrector->GetEtScaleCorrection(scEta1,R91,scEReg1*Rt1,dataLabel,energyEtScaleCorrType, 0.) << std::endl;
     }
 
-//     std::cout << " b) scEReg1 = " << scEReg1 
-// 	      << " corr1 = " << myEtScaleCorrector->GetEtScaleCorrection(scEta1,R91,scEReg1*Rt1,dataLabel,energyEtScaleCorrType, 0.) << std::endl;    
+    if( (applyEnergyEtResidualScaleCorr == true) && (MCClosure == false) )
+    {
+      scEReg1 *= myEtResidualScaleCorrector->GetEtResidualScaleCorrection(scEta1,R91,dataLabel,energyEtScaleCorrType, 0.);
+      scEReg2 *= myEtResidualScaleCorrector->GetEtResidualScaleCorrection(scEta2,R92,dataLabel,energyEtScaleCorrType, 0.);
+    }
+
+    if( (applyEnergyEtS0S5ScaleCorr == true) && (MCClosure == false) && (applyEnergyEtResidualScaleCorr == false) &&
+	(applyEnergyEtScaleCorr == false)    && (applyEnergyScaleCorr == false))
+    {
+      scEReg1 *= myEtS0S5ScaleCorrector->getScaleOffset(runId, isEB1, R91, scEta1, scEReg1*Rt1);
+      scEReg2 *= myEtS0S5ScaleCorrector->getScaleOffset(runId, isEB2, R92, scEta2, scEReg2*Rt2);
+
+      int HtBin1 = MyFindBin(2.*(scEReg1*Rt1),HtBinEdges);
+      if( HtBin1 == -1 ) continue;
+      h_ScaleCorrections_HtBin[HtBin1]->Fill(myEtS0S5ScaleCorrector->getScaleOffset(runId, isEB1, R91, scEta1, scEReg1*Rt1));
+      int HtBin2 = MyFindBin(2.*(scEReg2*Rt2),HtBinEdges);
+      if( HtBin2 == -1 ) continue;
+      h_ScaleCorrections_HtBin[HtBin2]->Fill(myEtS0S5ScaleCorrector->getScaleOffset(runId, isEB2, R92, scEta2, scEReg2*Rt2));
+    }
+
 
     if( applyEtaR9Reweighting == true )
     {
@@ -977,13 +1152,13 @@ int main(int argc, char** argv)
   
   
   
-  //------------
   // define bins
-  std::cout << std::endl;
-  std::cout << ">>> define bins" << std::endl;
+  //  std::cout << std::endl;
+  //  std::cout << ">>> define bins" << std::endl;
    
+  /*
+  delete HtBinEdges;
   HtBinEdges = new std::vector<double>;
-
 
   if(evtsPerPoint > 0){
     HtBinEdges -> push_back( Ht_DA.at(sortedEntries.at(0).entry) );
@@ -1005,152 +1180,9 @@ int main(int argc, char** argv)
     for(unsigned int posVec = 0; posVec< extHtBinEdges.size(); ++posVec)   
       HtBinEdges->push_back( extHtBinEdges.at(posVec) );
   }
-
-
-  
   nHtBins = HtBinEdges->size() - 1;
-  for(unsigned int i = 0; i < nHtBins; ++i)
-    std::cout << ">>> Ht bin " << i << ":   [" << HtBinEdges->at(i) << "," << HtBinEdges->at(i+1) << "]" << std::endl;
-  std::cout << std::endl;
-  
-  
-  
-  EtBinEdges = new std::vector<double>;
-  for(unsigned int HtBinEdgeIt = 0; HtBinEdgeIt < HtBinEdges->size(); ++HtBinEdgeIt)
-    EtBinEdges -> push_back( 0.5 * HtBinEdges->at(HtBinEdgeIt) );
-  nEtBins = EtBinEdges->size()-1;
-  
-  for(unsigned int i = 0; i < nEtBins; ++i)
-    std::cout << ">>> Et bin " << i << ":   [" << EtBinEdges->at(i) << "," << EtBinEdges->at(i+1) << "]" << std::endl;
-  std::cout << std::endl;
-  
-  HtBinEdgesDouble = new double[HtBinEdges->size()];
-  for(unsigned int i = 0; i < HtBinEdges->size(); ++i) HtBinEdgesDouble[i] = HtBinEdges->at(i);
-  EtBinEdgesDouble = new double[EtBinEdges->size()];
-  for(unsigned int i = 0; i < EtBinEdges->size(); ++i) EtBinEdgesDouble[i] = EtBinEdges->at(i);
-  
-  
-  
-  //------------------
-  // define histograms
-  std::cout << std::endl;
-  std::cout << ">>> define histograms" << std::endl;
-  
-  TH1F* h_scEta_MC = new TH1F("h_scEta_MC","",500,-2.5,2.5);
-  h_scEta_MC -> Sumw2();
-  TH1F* h_scEta_DA = new TH1F("h_scEta_DA","",500,-2.5,2.5);
-  h_scEta_DA -> Sumw2();
-  TH1F* h_R9_MC = new TH1F("h_R9_MC","",500,-1.,1.);
-  h_R9_MC -> Sumw2();
-  TH1F* h_R9_DA = new TH1F("h_R9_DA","",500,-1.,1.);
-  h_R9_DA -> Sumw2();
-  TH1F* h_Ht_MC = new TH1F("h_Ht_MC","",500,0.,500.);
-  h_Ht_MC -> Sumw2();
-  TH1F* h_Ht_DA = new TH1F("h_Ht_DA","",500,0.,500.);
-  h_Ht_DA -> Sumw2();
-  TH1F* h_Zpt_MC = new TH1F("h_Zpt_MC","",300,0.,300.);
-  h_Zpt_MC -> Sumw2();
-  TH1F* h_Zpt_DA = new TH1F("h_Zpt_DA","",300,0.,300.);
-  h_Zpt_DA -> Sumw2();
-  TH1F* h_mee_MC = new TH1F("h_mee_MC","",480,60.,120.);
-  h_mee_MC -> Sumw2();
-  TH1F* h_mee_DA = new TH1F("h_mee_DA","",480,60.,120.);
-  h_mee_DA -> Sumw2();
-  
-  TGraphAsymmErrors* scale_fit_MC       = new TGraphAsymmErrors();
-  TGraphAsymmErrors* scale_fit_DA       = new TGraphAsymmErrors();
-  TGraphAsymmErrors* scale_fit_DAOverMC = new TGraphAsymmErrors();
-  
-  TGraphAsymmErrors* scale_gausFit_MC       = new TGraphAsymmErrors();
-  TGraphAsymmErrors* scale_gausFit_DA       = new TGraphAsymmErrors();
-  TGraphAsymmErrors* scale_gausFit_DAOverMC = new TGraphAsymmErrors();
-  
-  TGraphAsymmErrors* scale_mean_MC       = new TGraphAsymmErrors();
-  TGraphAsymmErrors* scale_mean_DA       = new TGraphAsymmErrors();
-  TGraphAsymmErrors* scale_mean_DAOverMC = new TGraphAsymmErrors();
-  
-  TGraphAsymmErrors* scale_recursiveMean_MC       = new TGraphAsymmErrors();
-  TGraphAsymmErrors* scale_recursiveMean_DA       = new TGraphAsymmErrors();
-  TGraphAsymmErrors* scale_recursiveMean_DAOverMC = new TGraphAsymmErrors();
-  
-  TGraphAsymmErrors* scale_smallestInterval_MC       = new TGraphAsymmErrors();
-  TGraphAsymmErrors* scale_smallestInterval_DA       = new TGraphAsymmErrors();
-  TGraphAsymmErrors* scale_smallestInterval_DAOverMC = new TGraphAsymmErrors();
-  
-  std::vector<double>* mee_HtBin_MC    = new std::vector<double>[nHtBins];
-  std::vector<double>* weight_HtBin_MC = new std::vector<double>[nHtBins];
-  std::vector<double>* mee_HtBin_DA                      = new std::vector<double>[nHtBins];
-  std::vector<double>* mee_HtBin_fit_DA                  = new std::vector<double>[nHtBins];
-  std::vector<double>* mee_HtBin_gausFit_DA              = new std::vector<double>[nHtBins];
-  std::vector<double>* mee_HtBin_mean_DA                 = new std::vector<double>[nHtBins];
-  std::vector<double>* mee_HtBin_recursiveMean_DA        = new std::vector<double>[nHtBins];
-  std::vector<double>* mee_HtBin_smallestInterval_DA     = new std::vector<double>[nHtBins];
-  std::vector<double>* weight_HtBin_DA                   = new std::vector<double>[nHtBins];
-  std::vector<double>* weight_HtBin_fit_DA               = new std::vector<double>[nHtBins];
-  std::vector<double>* weight_HtBin_gausFit_DA           = new std::vector<double>[nHtBins];
-  std::vector<double>* weight_HtBin_mean_DA              = new std::vector<double>[nHtBins];
-  std::vector<double>* weight_HtBin_recursiveMean_DA     = new std::vector<double>[nHtBins];
-  std::vector<double>* weight_HtBin_smallestInterval_DA  = new std::vector<double>[nHtBins];
-    
-  TH1F** h_Zpt_HtBin_MC = new TH1F*[nHtBins];
-  TH1F** h_Zpt_HtBin_DA = new TH1F*[nHtBins];
-  TH1F** h_mee_HtBin_MC = new TH1F*[nHtBins];
-  TH1F** h_mee_HtBin_DA = new TH1F*[nHtBins];
-  TH1F** h_mee_HtBin_fit_DA = new TH1F*[nHtBins];
-  TH1F** h_mee_HtBin_gausFit_DA = new TH1F*[nHtBins];
-  TH1F** h_mee_HtBin_mean_DA = new TH1F*[nHtBins];
-  TH1F** h_mee_HtBin_recursiveMean_DA = new TH1F*[nHtBins];
-  TH1F** h_mee_HtBin_smallestInterval_DA = new TH1F*[nHtBins];
-  
-  TF1** f_gausFit_HtBin_MC = new TF1*[nHtBins];
-  TF1** f_gausFit_HtBin_DA = new TF1*[nHtBins];
-  
-  h_Ht_HtBin_MC = new TH1F*[nHtBins];
-  
-  h_Et_EtBin_MC = new TH1F*[nEtBins];
-  h_Et_EtBin_DA = new TH1F*[nEtBins];
-  h_Et_EtBin_fit_DA = new TH1F*[nEtBins];
-  h_Et_EtBin_gausFit_DA = new TH1F*[nEtBins];
-  h_Et_EtBin_mean_DA = new TH1F*[nEtBins];
-  h_Et_EtBin_recursiveMean_DA = new TH1F*[nEtBins];
-  h_Et_EtBin_smallestInterval_DA = new TH1F*[nEtBins];
-  
-  for(unsigned int HtBin = 0; HtBin < nHtBins; ++HtBin)
-  {
-    char histoName[50];
-    
-    sprintf(histoName,"h_mee_HtBin%d_MC",HtBin);
-    h_mee_HtBin_MC[HtBin] = new TH1F(histoName,"",nBinsMee,meeMin,meeMax);
-    //h_mee_HtBin_MC[HtBin] -> SetFillColor(kGreen+2);
-    //h_mee_HtBin_MC[HtBin] -> SetFillStyle(3004);
-    //h_mee_HtBin_MC[HtBin] -> SetMarkerStyle(7);
-    //h_mee_HtBin_MC[HtBin] -> SetMarkerColor(kGreen+2);
-    //h_mee_HtBin_MC[HtBin] -> SetLineColor(kGreen+2);
-    h_mee_HtBin_MC[HtBin]->Sumw2();
-    
-    sprintf(histoName, "h_Zpt_HtBin%d_MC",HtBin);
-    h_Zpt_HtBin_MC[HtBin] = new TH1F(histoName,"",300,0.,300.);
-    h_Zpt_HtBin_MC[HtBin] -> SetLineColor(kGreen+2);
-    h_Zpt_HtBin_MC[HtBin] -> Sumw2();
-    
-    sprintf(histoName, "Ht_HtBin%d_MC",HtBin);
-    h_Ht_HtBin_MC[HtBin] = new TH1F(histoName,"",5000,0.,1000.);
-    h_Ht_HtBin_MC[HtBin] -> SetLineColor(kGreen+2);
-    h_Ht_HtBin_MC[HtBin] -> Sumw2();
-  }
-  
-  for(unsigned int EtBin = 0; EtBin < nEtBins; ++EtBin)
-  {
-    char histoName[50];
-    
-    sprintf(histoName, "Et_EtBin%d_MC",EtBin);
-    h_Et_EtBin_MC[EtBin] = new TH1F(histoName,"",5000,0.,1000.);
-    h_Et_EtBin_MC[EtBin] -> SetLineColor(kGreen+2);
-    h_Et_EtBin_MC[EtBin] -> Sumw2();
-  }
-  
-  
-  
+  */
+
   
   //----------------
   // fill histograms
@@ -1158,11 +1190,13 @@ int main(int argc, char** argv)
   std::cout << ">>> fill histograms" << std::endl;
   
   int MCEntries = mee_MC.size();
+  std::cout << ">>> MCEntries = " << MCEntries << std::endl;
   for(int ientry = 0; ientry < MCEntries; ++ientry)
   {   
     if( (ientry%100000 == 0) ) std::cout << "reading   MC entry " << ientry << " / " << MCEntries << "\r" << std::flush;
     
-    
+    std::cout << " >>> Ht_MC.at(ientry) = " << Ht_MC.at(ientry) << std::endl;
+
     int HtBin = MyFindBin(Ht_MC.at(ientry),HtBinEdges);
     if( HtBin == -1 ) continue;
     
@@ -1171,16 +1205,25 @@ int main(int argc, char** argv)
     if( EtBin1 == -1 ) continue;
     if( EtBin2 == -1 ) continue;
     
+    std::cout << " >>> HtBin = " << HtBin << std::endl;
+    std::cout << " >>> EtBin1 = " << EtBin1 << std::endl;
+    std::cout << " >>> EtBin2 = " << EtBin2 << std::endl;
     mee_HtBin_MC[HtBin].push_back( mee_MC.at(ientry) );
     weight_HtBin_MC[HtBin].push_back( weight_MC.at(ientry) );
     
+    std::cout << " >>> push_back ok " << std::endl;
+
     h_Zpt_HtBin_MC[HtBin] -> Fill( Zpt_MC.at(ientry),weight_MC.at(ientry) );
     h_mee_HtBin_MC[HtBin] -> Fill( mee_MC.at(ientry),weight_MC.at(ientry) );
     h_Ht_HtBin_MC[HtBin]  -> Fill(  Ht_MC.at(ientry),weight_MC.at(ientry) );
-    
+
+    std::cout << " >>> Fill HtBin = " << HtBin << std::endl;    
+
     h_Et_EtBin_MC[EtBin1] -> Fill( Et1_MC.at(ientry),weight_MC.at(ientry) );
+    std::cout << " >>> Fill EtBin1 = " << EtBin1 << std::endl;    
     h_Et_EtBin_MC[EtBin2] -> Fill( Et2_MC.at(ientry),weight_MC.at(ientry) );
-    
+    std::cout << " >>> Fill EtBin2 = " << EtBin2 << std::endl;    
+
     h_scEta_MC -> Fill( scEta1_MC.at(ientry),weight_MC.at(ientry) );
     h_scEta_MC -> Fill( scEta2_MC.at(ientry),weight_MC.at(ientry) );
     
@@ -1195,6 +1238,7 @@ int main(int argc, char** argv)
     
     h_mee_MC -> Fill( mee_MC.at(ientry)*91.18,weight_MC.at(ientry) );
     h_mee_MC -> Fill( mee_MC.at(ientry)*91.18,weight_MC.at(ientry) );
+    std::cout << " >>> Fill All " << std::endl;    
   }
   std::cout << std::endl;
   
@@ -1540,7 +1584,8 @@ int main(int argc, char** argv)
         double scale_DA = 0.;
         double scaleErr_MC = 0.;
         double scaleErr_DA = 0.;
-        FindTemplateFit(scale_DA,scaleErr_DA,h_mee_HtBin_MC[HtBin],h_mee_HtBin_fit_DA[HtBin]);
+	//        FindTemplateFit(scale_DA,scaleErr_DA,h_mee_HtBin_MC[HtBin],h_mee_HtBin_fit_DA[HtBin]);
+        FindTemplateFit(scale_DA,scaleErr_DA,h_mee_HtBin_MC[HtBin],h_mee_HtBin_fit_DA[HtBin], &(f_templateFit_HtBin[HtBin]));
         double y = scale_DA / scale_MC;
         double eylow = y * sqrt( pow(scaleErr_DA/scale_DA,2) + pow(scaleErr_MC/scale_MC,2) );
         double eyhig = y * sqrt( pow(scaleErr_DA/scale_DA,2) + pow(scaleErr_MC/scale_MC,2) );
@@ -1612,8 +1657,10 @@ int main(int argc, char** argv)
         double scale_DA = 0.;
         double scaleErr_MC = 0.;
         double scaleErr_DA = 0.;
-        FindRecursiveMean(scale_MC,scaleErr_MC,mee_HtBin_MC[HtBin],weight_HtBin_MC[HtBin],5./91.18,0.0001,-1.);
-        FindRecursiveMean(scale_DA,scaleErr_DA,mee_HtBin_recursiveMean_DA[HtBin],weight_HtBin_recursiveMean_DA[HtBin],5./91.18,0.0001,-1.);
+	FindRecursiveMean(scale_MC,scaleErr_MC,mee_HtBin_MC[HtBin],weight_HtBin_MC[HtBin],5./91.18,0.0001,-1.);
+	FindRecursiveMean(scale_DA,scaleErr_DA,mee_HtBin_recursiveMean_DA[HtBin],weight_HtBin_recursiveMean_DA[HtBin],5./91.18,0.0001,-1.);
+//       FindRecursiveMean(scale_MC,scaleErr_MC,mee_HtBin_MC[HtBin],weight_HtBin_MC[HtBin],0.8*5./91.18,0.0001,-1.);
+//       FindRecursiveMean(scale_DA,scaleErr_DA,mee_HtBin_recursiveMean_DA[HtBin],weight_HtBin_recursiveMean_DA[HtBin],0.8*5./91.18,0.0001,-1.);
         double y = scale_DA / scale_MC;
         double eylow = y * sqrt( pow(scaleErr_DA/scale_DA,2) + pow(scaleErr_MC/scale_MC,2) );
         double eyhig = y * sqrt( pow(scaleErr_DA/scale_DA,2) + pow(scaleErr_MC/scale_MC,2) );
@@ -1734,6 +1781,7 @@ int main(int argc, char** argv)
     
     std::string outputPdf_DAMC  = plotFolderName + "h_mee_HtBin_DAOverMC_" + catType+"_cat"+ Form("%d",category) + ".pdf";
     std::string outputPdf2_DAMC = plotFolderName + "h_Zpt_HtBin_DAOverMC_" + catType+"_cat"+ Form("%d",category) + ".pdf";
+    std::string outputPdfScale_DAMC = plotFolderName + "h_ScaleCorrections_HtBin_" + catType+"_cat"+ Form("%d",category) + ".pdf";
     
     std::string outputPdf_MC = plotFolderName + "h_mee_HtBin_MC_"   + catType+"_cat"+ Form("%d",category) + ".pdf";
     std::string outputPdf_DA = plotFolderName + "h_mee_HtBin_DATA_" + catType+"_cat"+ Form("%d",category) + ".pdf";
@@ -1748,10 +1796,11 @@ int main(int argc, char** argv)
       h_mee_HtBin_recursiveMean_DA[HtBin] -> Write();
       h_mee_HtBin_smallestInterval_DA[HtBin] -> Write();
       
+      f_templateFit_HtBin[HtBin] -> Write();
       f_gausFit_HtBin_MC[HtBin] -> Write();
       f_gausFit_HtBin_DA[HtBin] -> Write();
       
-      
+      h_ScaleCorrections_HtBin[HtBin]->Write();
       
       if( step == 1 )
       {
@@ -1783,7 +1832,26 @@ int main(int argc, char** argv)
         if( HtBin == nHtBins-1 ) c_DAOverMC -> Print((outputPdf2_DAMC+"]").c_str());
         delete c_DAOverMC;
         
+
+	//////////////
+        sprintf(axisTitle,"correction - H_{T} #in [%d,%d]",int(HtBinEdges->at(HtBin)),int(HtBinEdges->at(HtBin+1)));
+        h_ScaleCorrections_HtBin[HtBin] -> GetXaxis() -> SetTitle(axisTitle);
+        sprintf(axisTitle,"event fraction");
+        h_ScaleCorrections_HtBin[HtBin] -> GetYaxis() -> SetTitle(axisTitle);
+        h_ScaleCorrections_HtBin[HtBin] -> GetXaxis() -> SetLabelSize(0.04);
+        h_ScaleCorrections_HtBin[HtBin] -> GetYaxis() -> SetLabelSize(0.04);
+        h_ScaleCorrections_HtBin[HtBin] -> GetXaxis() -> SetTitleSize(0.05);
+        h_ScaleCorrections_HtBin[HtBin] -> GetYaxis() -> SetTitleSize(0.05);
+        h_ScaleCorrections_HtBin[HtBin] -> SetLineColor(kBlack);
+        h_ScaleCorrections_HtBin[HtBin] -> SetLineWidth(1);
         
+	h_ScaleCorrections_HtBin[HtBin] -> Draw("hist");
+        
+        if( HtBin == 0 )         c_DAOverMC -> Print((outputPdfScale_DAMC+"[").c_str());
+        c_DAOverMC -> Print(outputPdfScale_DAMC.c_str());
+        if( HtBin == nHtBins-1 ) c_DAOverMC -> Print((outputPdfScale_DAMC+"]").c_str());
+        delete c_DAOverMC;
+	//////////////        
         
         c_DAOverMC = new TCanvas("c_mee");
         c_DAOverMC -> cd();
@@ -1842,6 +1910,8 @@ int main(int argc, char** argv)
         line_smallestInterval_MC -> SetLineColor(kRed);
         line_smallestInterval_MC -> SetLineWidth(2);
         
+	f_templateFit_HtBin[HtBin]->SetLineColor(kGreen);
+
         h_mee_HtBin_MC[HtBin] -> Draw("HIST");
         
         TH1F* clone = (TH1F*)( h_mee_HtBin_MC[HtBin]->Clone() );
@@ -1859,6 +1929,7 @@ int main(int argc, char** argv)
         line_recursiveMean_max_MC -> Draw("same");
         line_smallestInterval_MC  -> Draw("same");
         f_gausFit_HtBin_MC[HtBin] -> Draw("same");
+        f_templateFit_HtBin[HtBin] -> Draw("same");
         
         
         TCanvas* c_DA = new TCanvas("c_DA");
@@ -1901,6 +1972,8 @@ int main(int argc, char** argv)
         line_smallestInterval_DA -> SetLineColor(kRed);
         line_smallestInterval_DA -> SetLineWidth(2);
         
+	f_templateFit_HtBin[HtBin]->SetLineColor(kGreen);
+
         h_mee_HtBin_DA[HtBin] -> Draw("HIST");
         
         clone = (TH1F*)( h_mee_HtBin_DA[HtBin]->Clone() );
@@ -1918,6 +1991,7 @@ int main(int argc, char** argv)
         line_recursiveMean_max_DA -> Draw("same");
         line_smallestInterval_DA  -> Draw("same");
         f_gausFit_HtBin_DA[HtBin] -> Draw("same");
+        f_templateFit_HtBin[HtBin] -> Draw("same");
         
         
         if( HtBin == 0 )
