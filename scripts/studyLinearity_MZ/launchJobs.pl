@@ -26,7 +26,11 @@ $DATALabel           = $User_Preferences{"DATALabel"};
 $CATType             = $User_Preferences{"CATType"};
 $EVTSPerPoint        = $User_Preferences{"EVTSPerPoint"};
 $ENERGYScaleCorrType = $User_Preferences{"ENERGYScaleCorrType"};
+$ENERGYETScaleCorrType = $User_Preferences{"ENERGYETScaleCorrType"};
+$ENERGYETResidualScaleCorrType = $User_Preferences{"ENERGYETResidualScaleCorrType"};
+$ENERGYETS0S5ScaleCorrType = $User_Preferences{"ENERGYETS0S5ScaleCorrType"};
 $ENERGYSmearingType  = $User_Preferences{"ENERGYSmearingType"};
+$ENERGYETSmearingType  = $User_Preferences{"ENERGYETSmearingType"};
 $MCClosure           = $User_Preferences{"MCClosure"};
 $MCHiggs             = $User_Preferences{"MCHiggs"};
 $DPHIMax             = $User_Preferences{"DPHIMax"};
@@ -94,7 +98,11 @@ for($cat = 0; $cat < $NCats; ++$cat)
                                  "%g | sed -e s%CATEGORY%".$cat.
                                  "%g | sed -e s%EVTSPERPOINT%".$evtsPerPoint[$cat].
                                  "%g | sed -e s%ENERGYSCALECORRTYPE%".$ENERGYScaleCorrType.
+                                 "%g | sed -e s%ENERGYETSCALECORRTYPE%".$ENERGYETScaleCorrType.
+                                 "%g | sed -e s%ENERGYETRESIDUALSCALECORRTYPE%".$ENERGYETResidualScaleCorrType.
+                                 "%g | sed -e s%ENERGYETS0S5SCALECORRTYPE%".$ENERGYETS0S5ScaleCorrType.
                                  "%g | sed -e s%ENERGYSMEARINGTYPE%".$ENERGYSmearingType.
+                                 "%g | sed -e s%ENERGYETSMEARINGTYPE%".$ENERGYETSmearingType.
                                  "%g | sed -e s%MCCLOSURE%".$MCClosure.
                                  "%g | sed -e s%MCHIGGS%".$MCHiggs.
                                  "%g | sed -e s%DPHIMAX%".$DPHIMax.
@@ -109,7 +117,7 @@ for($cat = 0; $cat < $NCats; ++$cat)
   print JOBSH "echo \$SHELL\n";
   print JOBSH "source /gwpool/initcms/slc5_64-gcc462-cmssw.sh\n";
   print JOBSH "cd ".$baseDir."\n";
-  print JOBSH "cd ../CMSSW_5_3_5/src\n";
+  print JOBSH "cd ../../CMSSW_5_3_5/src\n";
   print JOBSH "eval `scramv1 runtime -sh`\n";
   print JOBSH "cd -\n";
   print JOBSH "pwd \n";
