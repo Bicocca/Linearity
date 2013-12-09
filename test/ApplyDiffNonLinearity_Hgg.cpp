@@ -51,8 +51,9 @@ int main()
   std::string methodName = "pol1";  
   //  std::string TF1_folder = "../TF1_"+methodName+"_MZ";
   std::string TF1_folder = "../TF1_"+methodName+"_EtScale";
+  std::string TF1_folderSys = "../TF1_"+methodName+"_syst";
 
-  //    std::string HggCatType = "MVA";
+  //  std::string HggCatType = "MVA";
       std::string HggCatType = "CiC";
 
   //std::string analysis  = "CiC"; 
@@ -256,6 +257,58 @@ int main()
     f_smearPlus1[iCat] = (TF1*)( funcFile->Get(Form("ET_cat%d",iCat)) );
     f_smearPlus1[iCat] -> SetName(Form("f_smearPlus1_cat%d_std",iCat));
   }
+
+  
+  TF1** f_eleT_noEtDep = new TF1*[nCats];
+  for(int iCat = 0; iCat < nCats; ++iCat)
+  {
+    funcFile = TFile::Open((TF1_folderSys+"/TF1_"+methodName+"_"+analysis+"_eT_noEtD_"+Form("cat%d.root",iCat)).c_str(),"READ");
+    f_eleT_noEtDep[iCat] = (TF1*)( funcFile->Get(Form("ET_cat%d",iCat)) );
+    f_eleT_noEtDep[iCat] -> SetName(Form("f_eT_noEtD_cat%d_std",iCat));
+  }
+
+  TF1** f_eleT_EtDep = new TF1*[nCats];
+  for(int iCat = 0; iCat < nCats; ++iCat)
+  {
+    funcFile = TFile::Open((TF1_folderSys+"/TF1_"+methodName+"_"+analysis+"_eT_EtD_"+Form("cat%d.root",iCat)).c_str(),"READ");
+    f_eleT_EtDep[iCat] = (TF1*)( funcFile->Get(Form("ET_cat%d",iCat)) );
+    f_eleT_EtDep[iCat] -> SetName(Form("f_eT_EtD_cat%d_std",iCat));
+  }
+
+
+  TF1** f_phoT_noEtDep = new TF1*[nCats];
+  for(int iCat = 0; iCat < nCats; ++iCat)
+  {
+    funcFile = TFile::Open((TF1_folderSys+"/TF1_"+methodName+"_"+analysis+"_pT_noEtD_"+Form("cat%d.root",iCat)).c_str(),"READ");
+    f_phoT_noEtDep[iCat] = (TF1*)( funcFile->Get(Form("ET_cat%d",iCat)) );
+    f_phoT_noEtDep[iCat] -> SetName(Form("f_pT_noEtD_cat%d_std",iCat));
+  }
+
+  TF1** f_phoT_EtDep = new TF1*[nCats];
+  for(int iCat = 0; iCat < nCats; ++iCat)
+  {
+    funcFile = TFile::Open((TF1_folderSys+"/TF1_"+methodName+"_"+analysis+"_pT_EtD_"+Form("cat%d.root",iCat)).c_str(),"READ");
+    f_phoT_EtDep[iCat] = (TF1*)( funcFile->Get(Form("ET_cat%d",iCat)) );
+    f_phoT_EtDep[iCat] -> SetName(Form("f_pT_EtD_cat%d_std",iCat));
+  }
+
+
+  TF1** f_pTAllM_noEtDep = new TF1*[nCats];
+  for(int iCat = 0; iCat < nCats; ++iCat)
+  {
+    funcFile = TFile::Open((TF1_folderSys+"/TF1_"+methodName+"_"+analysis+"_pTAllM_noEtD_"+Form("cat%d.root",iCat)).c_str(),"READ");
+    f_pTAllM_noEtDep[iCat] = (TF1*)( funcFile->Get(Form("ET_cat%d",iCat)) );
+    f_pTAllM_noEtDep[iCat] -> SetName(Form("f_pTAllM_noEtD_cat%d_std",iCat));
+  }
+
+  TF1** f_pTAllM_EtDep = new TF1*[nCats];
+  for(int iCat = 0; iCat < nCats; ++iCat)
+  {
+    funcFile = TFile::Open((TF1_folderSys+"/TF1_"+methodName+"_"+analysis+"_pTAllM_EtD_"+Form("cat%d.root",iCat)).c_str(),"READ");
+    f_pTAllM_EtDep[iCat] = (TF1*)( funcFile->Get(Form("ET_cat%d",iCat)) );
+    f_pTAllM_EtDep[iCat] -> SetName(Form("f_pTAllM_EtD_cat%d_std",iCat));
+  }
+
   
   
   
@@ -314,14 +367,14 @@ int main()
   TH1F** Hgg_original = new TH1F*[nCats];
   for(int catIt = 0; catIt < nCats; ++catIt)
   {
-    Hgg_original[catIt] = new TH1F(Form("Hgg_original_cat%d",catIt), "", 2400, 0., 300.);
+    Hgg_original[catIt] = new TH1F(Form("Hgg_original_cat%d",catIt), "", 300000, 0., 300.);
     Hgg_original[catIt]->Sumw2();
   }
   
   TH1F** Hgg_measuredDiff = new TH1F*[nCats];
   for(int catIt = 0; catIt < nCats; ++catIt)
   {
-    Hgg_measuredDiff[catIt] = new TH1F(Form("Hgg_measuredDiff_cat%d",catIt), "", 2400, 0., 300.);
+    Hgg_measuredDiff[catIt] = new TH1F(Form("Hgg_measuredDiff_cat%d",catIt), "", 300000, 0., 300.);
     Hgg_measuredDiff[catIt]->Sumw2();
   }
   
@@ -330,7 +383,7 @@ int main()
   {
     for(int catIt = 0; catIt < nCats; ++catIt)
     {
-      Hgg_measuredDiff_stat[iTrial*nCats+catIt] = new TH1F(Form("Hgg_measuredDiff_stat_cat%d_trial%d",catIt,iTrial), "", 2400, 0., 300.);
+      Hgg_measuredDiff_stat[iTrial*nCats+catIt] = new TH1F(Form("Hgg_measuredDiff_stat_cat%d_trial%d",catIt,iTrial), "", 300000, 0., 300.);
       Hgg_measuredDiff_stat[iTrial*nCats+catIt]->Sumw2();
     }
   }
@@ -338,29 +391,72 @@ int main()
   TH1F** Hgg_scalePlus1 = new TH1F*[nCats];
   for(int catIt = 0; catIt < nCats; ++catIt)
   {
-    Hgg_scalePlus1[catIt] = new TH1F(Form("Hgg_scalePlus1_cat%d",catIt), "", 2400, 0., 300.);
+    Hgg_scalePlus1[catIt] = new TH1F(Form("Hgg_scalePlus1_cat%d",catIt), "", 300000, 0., 300.);
     Hgg_scalePlus1[catIt]->Sumw2();
   }
   
   TH1F** Hgg_scaleMinus1 = new TH1F*[nCats];
   for(int catIt = 0; catIt < nCats; ++catIt)
   {
-    Hgg_scaleMinus1[catIt] = new TH1F(Form("Hgg_scaleMinus1_cat%d",catIt), "", 2400, 0., 300.);
+    Hgg_scaleMinus1[catIt] = new TH1F(Form("Hgg_scaleMinus1_cat%d",catIt), "", 300000, 0., 300.);
     Hgg_scaleMinus1[catIt]->Sumw2();
   }
   
   TH1F** Hgg_smearPlus1 = new TH1F*[nCats];
   for(int catIt = 0; catIt < nCats; ++catIt)
   {
-    Hgg_smearPlus1[catIt] = new TH1F(Form("Hgg_smearPlus1_cat%d",catIt), "", 2400, 0., 300.);
+    Hgg_smearPlus1[catIt] = new TH1F(Form("Hgg_smearPlus1_cat%d",catIt), "", 300000, 0., 300.);
     Hgg_smearPlus1[catIt]->Sumw2();
   }
   
   TH1F** Hgg_smearMinus1 = new TH1F*[nCats];
   for(int catIt = 0; catIt < nCats; ++catIt)
   {
-    Hgg_smearMinus1[catIt] = new TH1F(Form("Hgg_smearMinus1_cat%d",catIt), "", 2400, 0., 300.);
+    Hgg_smearMinus1[catIt] = new TH1F(Form("Hgg_smearMinus1_cat%d",catIt), "", 300000, 0., 300.);
     Hgg_smearMinus1[catIt]->Sumw2();
+  }  
+
+
+  TH1F** Hgg_eT_noEtD = new TH1F*[nCats];
+  for(int catIt = 0; catIt < nCats; ++catIt)
+  {
+    Hgg_eT_noEtD[catIt] = new TH1F(Form("Hgg_eT_noEtD_cat%d",catIt), "", 300000, 0., 300.);
+    Hgg_eT_noEtD[catIt]->Sumw2();
+  }  
+
+  TH1F** Hgg_eT_EtD = new TH1F*[nCats];
+  for(int catIt = 0; catIt < nCats; ++catIt)
+  {
+    Hgg_eT_EtD[catIt] = new TH1F(Form("Hgg_eT_EtD_cat%d",catIt), "", 300000, 0., 300.);
+    Hgg_eT_EtD[catIt]->Sumw2();
+  }  
+
+  TH1F** Hgg_pT_noEtD = new TH1F*[nCats];
+  for(int catIt = 0; catIt < nCats; ++catIt)
+  {
+    Hgg_pT_noEtD[catIt] = new TH1F(Form("Hgg_pT_noEtD_cat%d",catIt), "", 300000, 0., 300.);
+    Hgg_pT_noEtD[catIt]->Sumw2();
+  }  
+
+  TH1F** Hgg_pT_EtD = new TH1F*[nCats];
+  for(int catIt = 0; catIt < nCats; ++catIt)
+  {
+    Hgg_pT_EtD[catIt] = new TH1F(Form("Hgg_pT_EtD_cat%d",catIt), "", 300000, 0., 300.);
+    Hgg_pT_EtD[catIt]->Sumw2();
+  }  
+
+  TH1F** Hgg_AMpT_noEtD = new TH1F*[nCats];
+  for(int catIt = 0; catIt < nCats; ++catIt)
+  {
+    Hgg_AMpT_noEtD[catIt] = new TH1F(Form("Hgg_AMpT_noEtD_cat%d",catIt), "", 300000, 0., 300.);
+    Hgg_AMpT_noEtD[catIt]->Sumw2();
+  }  
+
+  TH1F** Hgg_AMpT_EtD = new TH1F*[nCats];
+  for(int catIt = 0; catIt < nCats; ++catIt)
+  {
+    Hgg_AMpT_EtD[catIt] = new TH1F(Form("Hgg_AMpT_EtD_cat%d",catIt), "", 300000, 0., 300.);
+    Hgg_AMpT_EtD[catIt]->Sumw2();
   }  
   
 
@@ -385,9 +481,9 @@ int main()
     Hgg_HT_HT.push_back(new TH1F*[nCats]);
     
     for(int catIt = 0; catIt < nCats; ++catIt){  
- Hgg_HT_ET1ET2.at(HTIt)[catIt] = new TH1F(Form("Hgg_HT_ET1ET2_cat%d_HT%d-%d",catIt, int(extHtBinEdges[HTIt]), int(extHtBinEdges[HTIt+1])), "", 2400, 0., 300.);
+ Hgg_HT_ET1ET2.at(HTIt)[catIt] = new TH1F(Form("Hgg_HT_ET1ET2_cat%d_HT%d-%d",catIt, int(extHtBinEdges[HTIt]), int(extHtBinEdges[HTIt+1])), "", 300000, 0., 300.);
  Hgg_HT_ET1ET2.at(HTIt)[catIt]->Sumw2();
- Hgg_HT_HT.at(HTIt)[catIt] = new TH1F(Form("Hgg_HT_HT_cat%d_HT%d-%d",catIt, int(extHtBinEdges[HTIt]), int(extHtBinEdges[HTIt+1])), "", 2400, 0., 300.);
+ Hgg_HT_HT.at(HTIt)[catIt] = new TH1F(Form("Hgg_HT_HT_cat%d_HT%d-%d",catIt, int(extHtBinEdges[HTIt]), int(extHtBinEdges[HTIt+1])), "", 300000, 0., 300.);
  Hgg_HT_HT.at(HTIt)[catIt]->Sumw2();
 
     }
@@ -497,6 +593,15 @@ int main()
 
 	  Hgg_smearPlus1[iCat]->Fill(mass*sqrt(f_smearPlus1[pho1Cat]->Eval(et1) * f_smearPlus1[pho2Cat]->Eval(et2)), full_weight);
 	  Hgg_smearMinus1[iCat]->Fill(mass*sqrt(f_smearMinus1[pho1Cat]->Eval(et1) * f_smearMinus1[pho2Cat]->Eval(et2)), full_weight);
+
+	  Hgg_eT_noEtD[iCat]->Fill(mass*sqrt(f_eleT_noEtDep[pho1Cat]->Eval(et1) * f_eleT_noEtDep[pho2Cat]->Eval(et2)), full_weight);
+	  Hgg_eT_EtD[iCat]->Fill(mass*sqrt(f_eleT_EtDep[pho1Cat]->Eval(et1) * f_eleT_EtDep[pho2Cat]->Eval(et2)), full_weight);
+
+	  Hgg_pT_noEtD[iCat]->Fill(mass*sqrt(f_phoT_noEtDep[pho1Cat]->Eval(et1) * f_phoT_noEtDep[pho2Cat]->Eval(et2)), full_weight);
+	  Hgg_pT_EtD[iCat]->Fill(mass*sqrt(f_phoT_EtDep[pho1Cat]->Eval(et1) * f_phoT_EtDep[pho2Cat]->Eval(et2)), full_weight);
+
+	  Hgg_AMpT_noEtD[iCat]->Fill(mass*sqrt(f_pTAllM_noEtDep[pho1Cat]->Eval(et1) * f_pTAllM_noEtDep[pho2Cat]->Eval(et2)), full_weight);
+	  Hgg_AMpT_EtD[iCat]->Fill(mass*sqrt(f_pTAllM_EtDep[pho1Cat]->Eval(et1) * f_pTAllM_EtDep[pho2Cat]->Eval(et2)), full_weight);
 
 	  if(analysis == "CiC") {
   Hgg_HTvsET1pET2[iCat]->Fill(sqrt(f_std[pho1Cat]->Eval(et1) * f_std[pho2Cat]->Eval(et2)) - f_stat[iCat]->Eval(et1 + et2), full_weight);
@@ -692,6 +797,13 @@ Hgg_measuredDiff_stat[iTrial*nCats+iCat]->Fill(mass*sqrt(f_stat_Trial_ET[pho1Cat
     Hgg_scaleMinus1[iCat]->Write();
     Hgg_smearPlus1[iCat]->Write();
     Hgg_smearMinus1[iCat]->Write();
+
+    Hgg_eT_noEtD[iCat]->Write();
+    Hgg_eT_EtD[iCat]->Write();
+    Hgg_pT_noEtD[iCat]->Write();
+    Hgg_pT_EtD[iCat]->Write();
+    Hgg_AMpT_noEtD[iCat]->Write();
+    Hgg_AMpT_EtD[iCat]->Write();
 
     Hgg_HTvsET1pET2[iCat]->Write();
 
