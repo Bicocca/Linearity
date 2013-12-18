@@ -21,7 +21,7 @@
 #include "TChain.h"
 #include "TVirtualFitter.h"
 #include "TRandom.h"
-
+#include "TLorentzVector.h"
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -38,11 +38,12 @@ double* cholesky(double* A, int n);
 
 int GetSingleCategory(const float& scEta1, const float& R91);
 
-int GetMVAcat(const float& dipho_mva);
+int GetMVAcat_7TeV(const float& dipho_mva);
+int GetMVAcat_8TeV(const float& dipho_mva);
 
 int main()
 {
-  int nSamples = 4;
+  int nSamples = 1;
   int nCats = 4;
   int nPar = 2;
   int nTrials = 1000;
@@ -53,12 +54,28 @@ int main()
   std::string TF1_folder = "../TF1_"+methodName+"_EtScale";
   std::string TF1_folderSys = "../TF1_"+methodName+"_syst";
 
+<<<<<<< HEAD
+  //  std::string HggCatType = "MVA_7TeV";
+  //  std::string HggCatType = "MVA_8TeV";
+    std::string HggCatType = "CiC_7TeV";
+  //  std::string HggCatType = "CiC_8TeV";
+=======
   //  std::string HggCatType = "MVA";
       std::string HggCatType = "CiC";
+>>>>>>> 82e89ee86597d5480698735f7d2c57eb88eca450
 
   //std::string analysis  = "CiC"; 
-    std::string analysis = "stdCat";
+  std::string analysis = "stdCat";
+  
+  bool checkSystematic = false;
+  //////////////// da sotto qui ok 
+  //////////////// cambia sopra in caso
 
+  std::string Energy;
+
+  if(HggCatType == "CiC_7TeV" || HggCatType == "MVA_7TeV") Energy = "7TeV";
+  if(HggCatType == "CiC_8TeV" || HggCatType == "MVA_8TeV") Energy = "8TeV";
+  
   std::cout << "analysis = " << analysis << std::endl;
   std::cout << "HggCatType = " << HggCatType << std::endl;
 
@@ -79,18 +96,19 @@ int main()
   TF1** f_std = new TF1*[nCats];
   for(int iCat = 0; iCat < nCats; ++iCat)
   {
-    funcFile = TFile::Open((TF1_folder+"/TF1_"+methodName+"_"+analysis+"_std_"+Form("cat%d.root",iCat)).c_str(),"READ");
+    funcFile = TFile::Open((TF1_folder+"/TF1_"+methodName+"_"+analysis+"_"+Energy+"_std_"+Form("cat%d.root",iCat)).c_str(),"READ");
     f_std[iCat] = (TF1*)( funcFile->Get(Form("ET_cat%d",iCat)) );
     f_std[iCat] -> SetName(Form("f_std_cat%d_std",iCat));
   }
   TF1** f_stat = new TF1*[nCats];
   for(int iCat = 0; iCat < nCats; ++iCat)
   {
-    funcFile = TFile::Open((TF1_folder+"/TF1_"+methodName+"_"+analysis+"_std_"+Form("cat%d.root",iCat)).c_str(),"READ");
+    funcFile = TFile::Open((TF1_folder+"/TF1_"+methodName+"_"+analysis+"_"+Energy+"_std_"+Form("cat%d.root",iCat)).c_str(),"READ");
     f_stat[iCat] = (TF1*)( funcFile->Get(Form("HT_cat%d",iCat)) );
     f_stat[iCat] -> SetName(Form("f_stat_cat%d_std",iCat));
   }
-  
+  std::cout << " Stat presa " << std::endl;  
+
   double** corMatrix = new double*[nCats];
   if(methodName == "exp"){
     nPar = 2;
@@ -181,82 +199,117 @@ int main()
   (corMatrix[3])[2] = 0.3860;
   (corMatrix[3])[3] = 1.0000e+00;
   }
-  if(methodName == "pol1" && analysis == "stdCat"){
+  if(methodName == "pol1" && analysis == "stdCat" && (HggCatType == "MVA_8TeV" || HggCatType == "CiC_8TeV")){
+    nPar = 2;
+    corMatrix[0] = new double[nPar*nPar];
+  (corMatrix[0])[0] = 1;
+  (corMatrix[0])[1] = 0.195665;
+  (corMatrix[0])[2] = 0.195665;
+  (corMatrix[0])[3] = 1;
+  corMatrix[1] = new double[nPar*nPar];
+  (corMatrix[1])[0] = 1.0000;
+  (corMatrix[1])[1] = 0.3196;
+  (corMatrix[1])[2] = 0.3196;
+  (corMatrix[1])[3] = 1.0000;
+  corMatrix[2] = new double[nPar*nPar];
+  (corMatrix[2])[0] = 1.0000;
+  (corMatrix[2])[1] = -0.2715;
+  (corMatrix[2])[2] = -0.2715;
+  (corMatrix[2])[3] = 1.0000;
+  corMatrix[3] = new double[nPar*nPar];
+  (corMatrix[3])[0] = 1.0000;
+  (corMatrix[3])[1] = -0.0063;
+  (corMatrix[3])[2] = -0.0063;
+  (corMatrix[3])[3] = 1.0000;
+  }
+
+  if(methodName == "pol1" && analysis == "stdCat" && (HggCatType == "CiC_7TeV" || HggCatType == "MVA_7TeV")){
     nPar = 2;
   corMatrix[0] = new double[nPar*nPar];
   (corMatrix[0])[0] = 1;
-  (corMatrix[0])[1] = -0.220997;
-  (corMatrix[0])[2] = -0.220997;
+  (corMatrix[0])[1] = -0.190282;
+  (corMatrix[0])[2] = -0.190282;
   (corMatrix[0])[3] = 1;
   corMatrix[1] = new double[nPar*nPar];
-  (corMatrix[1])[0] = 1.0000e+00;
-  (corMatrix[1])[1] = 0.2055;
-  (corMatrix[1])[2] = 0.2055;
-  (corMatrix[1])[3] = 1.0000e+00;
+  (corMatrix[1])[0] = 1.0000;
+  (corMatrix[1])[1] = 0.1473;
+  (corMatrix[1])[2] = 0.1473;
+  (corMatrix[1])[3] = 1.0000;
   corMatrix[2] = new double[nPar*nPar];
-  (corMatrix[2])[0] = 1.0000e+00;
-  (corMatrix[2])[1] = -0.2312;
-  (corMatrix[2])[2] = -0.2312;
-  (corMatrix[2])[3] = 1.0000e+00;
+  (corMatrix[2])[0] = 1.0000;
+  (corMatrix[2])[1] = -0.2385;
+  (corMatrix[2])[2] = -0.2385;
+  (corMatrix[2])[3] = 1.0000;
   corMatrix[3] = new double[nPar*nPar];
-  (corMatrix[3])[0] = 1.0000e+00;
-  (corMatrix[3])[1] = -0.1619;
-  (corMatrix[3])[2] = -0.1619;
-  (corMatrix[3])[3] = 1.0000e+00;
+  (corMatrix[3])[0] = 1.0000;
+  (corMatrix[3])[1] = -0.3937;
+  (corMatrix[3])[2] = -0.3937;
+  (corMatrix[3])[3] = 1.0000;
   }
 
     
   double** C = new double*[nCats];
   for(int iCat = 0; iCat < nCats; ++iCat)
     C[iCat] = cholesky(corMatrix[iCat],nPar);
+
+  std::cout << " Covarianze fatte " << std::endl;
   
   TF1** f_scaleMinus1Diff = new TF1*[nCats];
+  if(checkSystematic){
   for(int iCat = 0; iCat < nCats; ++iCat)
   {
     funcFile = TFile::Open((TF1_folder+"/TF1_"+methodName+"_"+analysis+"_scaleMinus1Diff_"+Form("cat%d.root",iCat)).c_str(),"READ");
     f_scaleMinus1Diff[iCat] = (TF1*)( funcFile->Get(Form("ET_cat%d",iCat)) );
     f_scaleMinus1Diff[iCat] -> SetName(Form("f_scaleMinus1Diff_cat%d_std",iCat));
   }
-  
+  }
   TF1** f_scalePlus1Diff = new TF1*[nCats];
+  if(checkSystematic){
   for(int iCat = 0; iCat < nCats; ++iCat)
   {
     funcFile = TFile::Open((TF1_folder+"/TF1_"+methodName+"_"+analysis+"_scalePlus1Diff_"+Form("cat%d.root",iCat)).c_str(),"READ");
     f_scalePlus1Diff[iCat] = (TF1*)( funcFile->Get(Form("ET_cat%d",iCat)) );
     f_scalePlus1Diff[iCat] -> SetName(Form("f_scalePlus1Diff_cat%d_std",iCat));
   }
-
+  }
   TF1** f_scaleMinus1 = new TF1*[nCats];
+  if(checkSystematic){
   for(int iCat = 0; iCat < nCats; ++iCat)
   {
     funcFile = TFile::Open((TF1_folder+"/TF1_"+methodName+"_"+analysis+"_scaleMinus1_"+Form("cat%d.root",iCat)).c_str(),"READ");
     f_scaleMinus1[iCat] = (TF1*)( funcFile->Get(Form("ET_cat%d",iCat)) );
     f_scaleMinus1[iCat] -> SetName(Form("f_scaleMinus1_cat%d_std",iCat));
   }
-  
+  }
   TF1** f_scalePlus1 = new TF1*[nCats];
+  if(checkSystematic){
   for(int iCat = 0; iCat < nCats; ++iCat)
   {
     funcFile = TFile::Open((TF1_folder+"/TF1_"+methodName+"_"+analysis+"_scalePlus1_"+Form("cat%d.root",iCat)).c_str(),"READ");
     f_scalePlus1[iCat] = (TF1*)( funcFile->Get(Form("ET_cat%d",iCat)) );
     f_scalePlus1[iCat] -> SetName(Form("f_scalePlus1_cat%d_std",iCat));
   }
-  
+  }
   TF1** f_smearMinus1 = new TF1*[nCats];
+  if(checkSystematic){
   for(int iCat = 0; iCat < nCats; ++iCat)
   {
     funcFile = TFile::Open((TF1_folder+"/TF1_"+methodName+"_"+analysis+"_smearMinus1_"+Form("cat%d.root",iCat)).c_str(),"READ");
     f_smearMinus1[iCat] = (TF1*)( funcFile->Get(Form("ET_cat%d",iCat)) );
     f_smearMinus1[iCat] -> SetName(Form("f_smearMinus1_cat%d_std",iCat));
   }
-  
+  }
   TF1** f_smearPlus1 = new TF1*[nCats];
+  if(checkSystematic){
   for(int iCat = 0; iCat < nCats; ++iCat)
   {
     funcFile = TFile::Open((TF1_folder+"/TF1_"+methodName+"_"+analysis+"_smearPlus1_"+Form("cat%d.root",iCat)).c_str(),"READ");
     f_smearPlus1[iCat] = (TF1*)( funcFile->Get(Form("ET_cat%d",iCat)) );
     f_smearPlus1[iCat] -> SetName(Form("f_smearPlus1_cat%d_std",iCat));
   }
+<<<<<<< HEAD
+  }
+=======
 
   
   TF1** f_eleT_noEtDep = new TF1*[nCats];
@@ -309,39 +362,63 @@ int main()
     f_pTAllM_EtDep[iCat] -> SetName(Form("f_pTAllM_EtD_cat%d_std",iCat));
   }
 
+>>>>>>> 82e89ee86597d5480698735f7d2c57eb88eca450
   
-  
+  std::cout << " Syst passate " << std::endl;
   
   //------------
   // input trees
   TFile** inFile = new TFile*[nSamples];
   TTree** trees = new TTree*[nSamples];
 
-  if(HggCatType == "CiC"){
-    inFile[0] = new TFile("../data/histograms_CMS-HGG.root", "read");
-    inFile[1] = new TFile("../data/histograms_CMS-HGG.root", "read");
-    inFile[2] = new TFile("../data/histograms_CMS-HGG.root", "read");
-    inFile[3] = new TFile("../data/histograms_CMS-HGG.root", "read");
-    trees[0] = (TTree*)inFile[0]->Get("ggh_m125_8TeV");
-    trees[1] = (TTree*)inFile[1]->Get("vbf_m125_8TeV"); 
-    trees[2] = (TTree*)inFile[2]->Get("wzh_m125_8TeV"); 
-    trees[3] = (TTree*)inFile[3]->Get("tth_m125_8TeV"); 
-  }
-  if(HggCatType == "MVA"){
-    inFile[0] = new TFile("../data/copiaHgg_MVA_125000.root", "read");
-    inFile[1] = new TFile("../data/copiaHgg_MVA_125100.root", "read");
-    inFile[2] = new TFile("../data/copiaHgg_MVA_125400.root", "read");
-    inFile[3] = new TFile("../data/copiaHgg_MVA_125500.root", "read");
+  if(HggCatType == "CiC_8TeV"){
+    inFile[0] = new TFile("../data/Hgg_signalTrees/Hgg_Dump_CiC_8TeV.root", "read");
+//     inFile[1] = new TFile("../data/histograms_CMS-HGG.root", "read");
+//     inFile[2] = new TFile("../data/histograms_CMS-HGG.root", "read");
+//     inFile[3] = new TFile("../data/histograms_CMS-HGG.root", "read");
     trees[0] = (TTree*)inFile[0]->Get("opttree");
-    trees[1] = (TTree*)inFile[1]->Get("opttree");
-    trees[2] = (TTree*)inFile[2]->Get("opttree");
-    trees[3] = (TTree*)inFile[3]->Get("opttree");
+//     trees[1] = (TTree*)inFile[1]->Get("vbf_m125_8TeV"); 
+//     trees[2] = (TTree*)inFile[2]->Get("wzh_m125_8TeV"); 
+//     trees[3] = (TTree*)inFile[3]->Get("tth_m125_8TeV"); 
+  }
+  if(HggCatType == "MVA_8TeV"){
+    inFile[0] = new TFile("../data/Hgg_signalTrees/Hgg_Dump_MVA_8TeV.root", "read");
+//     inFile[1] = new TFile("../data/copiaHgg_MVA_125100.root", "read");
+//     inFile[2] = new TFile("../data/copiaHgg_MVA_125400.root", "read");
+//     inFile[3] = new TFile("../data/copiaHgg_MVA_125500.root", "read");
+    trees[0] = (TTree*)inFile[0]->Get("opttree");
+//     trees[1] = (TTree*)inFile[1]->Get("opttree");
+//     trees[2] = (TTree*)inFile[2]->Get("opttree");
+//     trees[3] = (TTree*)inFile[3]->Get("opttree");
   }
 
+  if(HggCatType == "CiC_7TeV"){
+    inFile[0] = new TFile("../data/Hgg_signalTrees/Hgg_Dump_CiC_7TeV.root", "read");
+//     inFile[1] = new TFile("../data/histograms_CMS-HGG.root", "read");
+//     inFile[2] = new TFile("../data/histograms_CMS-HGG.root", "read");
+//     inFile[3] = new TFile("../data/histograms_CMS-HGG.root", "read");
+    trees[0] = (TTree*)inFile[0]->Get("opttree");
+//     trees[1] = (TTree*)inFile[1]->Get("vbf_m125_8TeV"); 
+//     trees[2] = (TTree*)inFile[2]->Get("wzh_m125_8TeV"); 
+//     trees[3] = (TTree*)inFile[3]->Get("tth_m125_8TeV"); 
+  }
+  if(HggCatType == "MVA_7TeV"){
+    inFile[0] = new TFile("../data/Hgg_signalTrees/Hgg_Dump_MVA_7TeV.root", "read");
+//     inFile[1] = new TFile("../data/copiaHgg_MVA_125100.root", "read");
+//     inFile[2] = new TFile("../data/copiaHgg_MVA_125400.root", "read");
+//     inFile[3] = new TFile("../data/copiaHgg_MVA_125500.root", "read");
+    trees[0] = (TTree*)inFile[0]->Get("opttree");
+//     trees[1] = (TTree*)inFile[1]->Get("opttree");
+//     trees[2] = (TTree*)inFile[2]->Get("opttree");
+//     trees[3] = (TTree*)inFile[3]->Get("opttree");
+  }
+
+  std::cout << " Input presi " << std::endl;
 
   float full_weight;
   float full_cat;
   float dipho_mva;
+  float dipho_pt;
   float mass;
   float et1, et2, eta1, eta2, r91, r92;
   
@@ -351,6 +428,7 @@ int main()
     trees[iSample]->SetBranchStatus("full_weight", 1);    trees[iSample]->SetBranchAddress("full_weight", &full_weight);
     trees[iSample]->SetBranchStatus("full_cat", 1);       trees[iSample]->SetBranchAddress("full_cat", &full_cat);
     trees[iSample]->SetBranchStatus("dipho_mva", 1);       trees[iSample]->SetBranchAddress("dipho_mva", &dipho_mva);
+    trees[iSample]->SetBranchStatus("dipho_pt", 1);       trees[iSample]->SetBranchAddress("dipho_pt", &dipho_pt);
     trees[iSample]->SetBranchStatus("mass", 1);           trees[iSample]->SetBranchAddress("mass", &mass);
     trees[iSample]->SetBranchStatus("et1", 1);             trees[iSample]->SetBranchAddress("et1", &et1);
     trees[iSample]->SetBranchStatus("et2", 1);             trees[iSample]->SetBranchAddress("et2", &et2);
@@ -360,8 +438,10 @@ int main()
     trees[iSample]->SetBranchStatus("r92", 1);           trees[iSample]->SetBranchAddress("r92", &r92);
   }
   
-  if(HggCatType == "MVA")   nCats = 5;
+  if(HggCatType == "MVA_8TeV")   nCats = 5;
   
+  std::cout << " Branches letti now OUTPUT HISTOS" << std::endl;
+
   //-----------------------------
   //OutputHistogram - all samples
   TH1F** Hgg_original = new TH1F*[nCats];
@@ -370,12 +450,36 @@ int main()
     Hgg_original[catIt] = new TH1F(Form("Hgg_original_cat%d",catIt), "", 300000, 0., 300.);
     Hgg_original[catIt]->Sumw2();
   }
+  TH1F** Hgg_original_pTLow = new TH1F*[nCats];
+  for(int catIt = 0; catIt < nCats; ++catIt)
+  {
+    Hgg_original_pTLow[catIt] = new TH1F(Form("Hgg_original_pTLow_cat%d",catIt), "", 2400, 0., 300.);
+    Hgg_original_pTLow[catIt]->Sumw2();
+  }
+  TH1F** Hgg_original_pTHigh = new TH1F*[nCats];
+  for(int catIt = 0; catIt < nCats; ++catIt)
+  {
+    Hgg_original_pTHigh[catIt] = new TH1F(Form("Hgg_original_pTHigh_cat%d",catIt), "", 2400, 0., 300.);
+    Hgg_original_pTHigh[catIt]->Sumw2();
+  }
   
   TH1F** Hgg_measuredDiff = new TH1F*[nCats];
   for(int catIt = 0; catIt < nCats; ++catIt)
   {
     Hgg_measuredDiff[catIt] = new TH1F(Form("Hgg_measuredDiff_cat%d",catIt), "", 300000, 0., 300.);
     Hgg_measuredDiff[catIt]->Sumw2();
+  }
+  TH1F** Hgg_measuredDiff_pTLow = new TH1F*[nCats];
+  for(int catIt = 0; catIt < nCats; ++catIt)
+  {
+    Hgg_measuredDiff_pTLow[catIt] = new TH1F(Form("Hgg_measuredDiff_pTLow_cat%d",catIt), "", 2400, 0., 300.);
+    Hgg_measuredDiff_pTLow[catIt]->Sumw2();
+  }
+  TH1F** Hgg_measuredDiff_pTHigh = new TH1F*[nCats];
+  for(int catIt = 0; catIt < nCats; ++catIt)
+  {
+    Hgg_measuredDiff_pTHigh[catIt] = new TH1F(Form("Hgg_measuredDiff_pTHigh_cat%d",catIt), "", 2400, 0., 300.);
+    Hgg_measuredDiff_pTHigh[catIt]->Sumw2();
   }
   
   TH1F** Hgg_measuredDiff_stat = new TH1F*[nCats*nTrials];
@@ -387,7 +491,25 @@ int main()
       Hgg_measuredDiff_stat[iTrial*nCats+catIt]->Sumw2();
     }
   }
-  
+  TH1F** Hgg_measuredDiff_stat_pTLow = new TH1F*[nCats*nTrials];
+  for(int iTrial = 0; iTrial < nTrials; ++iTrial)
+  {
+    for(int catIt = 0; catIt < nCats; ++catIt)
+    {
+      Hgg_measuredDiff_stat_pTLow[iTrial*nCats+catIt] = new TH1F(Form("Hgg_measuredDiff_stat_pTLow_cat%d_trial%d",catIt,iTrial), "", 2400, 0., 300.);
+      Hgg_measuredDiff_stat_pTLow[iTrial*nCats+catIt]->Sumw2();
+    }
+  }
+  TH1F** Hgg_measuredDiff_stat_pTHigh = new TH1F*[nCats*nTrials];
+  for(int iTrial = 0; iTrial < nTrials; ++iTrial)
+  {
+    for(int catIt = 0; catIt < nCats; ++catIt)
+    {
+      Hgg_measuredDiff_stat_pTHigh[iTrial*nCats+catIt] = new TH1F(Form("Hgg_measuredDiff_stat_pTHigh_cat%d_trial%d",catIt,iTrial), "", 2400, 0., 300.);
+      Hgg_measuredDiff_stat_pTHigh[iTrial*nCats+catIt]->Sumw2();
+    }
+  }
+
   TH1F** Hgg_scalePlus1 = new TH1F*[nCats];
   for(int catIt = 0; catIt < nCats; ++catIt)
   {
@@ -473,6 +595,7 @@ int main()
     Hgg_HTvsET1pET2_stat[catIt]->Sumw2();
   }
 
+  std::cout << " Other output histos " << std::endl;
   // HT bins
   std::vector<TH1F**> Hgg_HT_ET1ET2;
   std::vector<TH1F**> Hgg_HT_HT;
@@ -536,8 +659,9 @@ int main()
       float Rt2 = sin(theta2);
       
       int eventMVAcat = -1;
-      if( HggCatType == "MVA") eventMVAcat = GetMVAcat(dipho_mva);
-      if( HggCatType == "CiC") eventMVAcat = full_cat;
+      if( HggCatType == "MVA_7TeV") eventMVAcat = GetMVAcat_7TeV(dipho_mva);
+      if( HggCatType == "MVA_8TeV") eventMVAcat = GetMVAcat_8TeV(dipho_mva);
+      if( HggCatType == "CiC_7TeV" || HggCatType == "CiC_8TeV") eventMVAcat = full_cat;
 
       for(int iCat = 0; iCat < nCats; ++iCat)
       {
@@ -563,7 +687,6 @@ int main()
 	  SingleCat[iCat]->Fill(pho2Cat);
 
 
-
 // 	  if(e1*Rt1 != et1 || e2*Rt2 != et2) {
 // 	    std::cout << " CAOS VERO " << std::endl;
 // 	    std::cout << " e1*Rt1 = " << e1*Rt1 << std::endl;
@@ -574,6 +697,8 @@ int main()
 //	  if(GetSingleCategory(eta2,r92) > 1 || GetSingleCategory(eta2,r92) > 1) continue;	
 
 	  Hgg_original[iCat]->Fill(mass,full_weight);
+	  if( (dipho_pt/mass) < (40./125.) ) Hgg_original_pTLow[iCat]->Fill(mass,full_weight);
+	  else Hgg_original_pTHigh[iCat]->Fill(mass,full_weight);
   
 //	    if(et1 > 150. || et2 > 150.) continue;
 
@@ -583,16 +708,21 @@ int main()
 	  HTDoublePho[iCat]->Fill(et1+et2);
 
 	  Hgg_measuredDiff[iCat]->Fill(mass*sqrt(f_std[pho1Cat]->Eval(et1) * f_std[pho2Cat]->Eval(et2)), full_weight);
+	  if( (dipho_pt/mass) < (40./125.) ) 
+	    Hgg_measuredDiff_pTLow[iCat]->Fill(mass*sqrt(f_std[pho1Cat]->Eval(et1) * f_std[pho2Cat]->Eval(et2)), full_weight);
+	  else Hgg_measuredDiff_pTHigh[iCat]->Fill(mass*sqrt(f_std[pho1Cat]->Eval(et1) * f_std[pho2Cat]->Eval(et2)), full_weight);
 
 // 	  std::cout << " f_std[pho1Cat]->Eval(et1) = " << f_std[pho1Cat]->Eval(et1) << std::endl;
 // 	  std::cout << " f_std[pho2Cat]->Eval(et2) = " << f_std[pho2Cat]->Eval(et2) << std::endl;
 // 	  std::cout << " corr = " << sqrt(f_std[pho1Cat]->Eval(et1) * f_std[pho2Cat]->Eval(et2)) << std::endl;
 
+	  if(checkSystematic){
 	  Hgg_scalePlus1[iCat]->Fill(mass*sqrt(f_scalePlus1Diff[pho1Cat]->Eval(et1) * f_scalePlus1Diff[pho2Cat]->Eval(et2)), full_weight);
 	  Hgg_scaleMinus1[iCat]->Fill(mass*sqrt(f_scaleMinus1Diff[pho1Cat]->Eval(et1) * f_scaleMinus1Diff[pho2Cat]->Eval(et2)), full_weight);
 
 	  Hgg_smearPlus1[iCat]->Fill(mass*sqrt(f_smearPlus1[pho1Cat]->Eval(et1) * f_smearPlus1[pho2Cat]->Eval(et2)), full_weight);
 	  Hgg_smearMinus1[iCat]->Fill(mass*sqrt(f_smearMinus1[pho1Cat]->Eval(et1) * f_smearMinus1[pho2Cat]->Eval(et2)), full_weight);
+	  }
 
 	  Hgg_eT_noEtD[iCat]->Fill(mass*sqrt(f_eleT_noEtDep[pho1Cat]->Eval(et1) * f_eleT_noEtDep[pho2Cat]->Eval(et2)), full_weight);
 	  Hgg_eT_EtD[iCat]->Fill(mass*sqrt(f_eleT_EtDep[pho1Cat]->Eval(et1) * f_eleT_EtDep[pho2Cat]->Eval(et2)), full_weight);
@@ -749,10 +879,11 @@ int main()
         float Rt2 = sin(theta2);
         
 	int eventMVAcat = -1;
-	if( HggCatType == "MVA") eventMVAcat = GetMVAcat(dipho_mva);
-	if( HggCatType == "CiC") eventMVAcat = full_cat;
+	if( HggCatType == "MVA_7TeV" ) eventMVAcat = GetMVAcat_7TeV(dipho_mva);
+	if( HggCatType == "MVA_8TeV" ) eventMVAcat = GetMVAcat_8TeV(dipho_mva);
+	if( HggCatType == "CiC_7TeV" || HggCatType == "CiC_8TeV") eventMVAcat = full_cat;
 
-	if(HggCatType == "MVA") nCats = 5;
+	if(HggCatType == "MVA_8TeV") nCats = 5;
         for(int iCat = 0; iCat < nCats; ++iCat)
         {
           if(eventMVAcat == iCat)
@@ -769,7 +900,10 @@ int main()
 
 	    //fEt1fEt2
 Hgg_measuredDiff_stat[iTrial*nCats+iCat]->Fill(mass*sqrt(f_stat_Trial_ET[pho1Cat]->Eval(et1) * f_stat_Trial_ET[pho2Cat]->Eval(et2)), full_weight);
-
+if( (dipho_pt/mass) < (40./125.) )
+  Hgg_measuredDiff_stat_pTLow[iTrial*nCats+iCat]->Fill(mass*sqrt(f_stat_Trial_ET[pho1Cat]->Eval(et1) * f_stat_Trial_ET[pho2Cat]->Eval(et2)), full_weight);
+else 
+  Hgg_measuredDiff_stat_pTHigh[iTrial*nCats+iCat]->Fill(mass*sqrt(f_stat_Trial_ET[pho1Cat]->Eval(et1) * f_stat_Trial_ET[pho2Cat]->Eval(et2)), full_weight);
           }
         }
 	nCats = 4;
@@ -783,7 +917,7 @@ Hgg_measuredDiff_stat[iTrial*nCats+iCat]->Fill(mass*sqrt(f_stat_Trial_ET[pho1Cat
   
   TFile outputFile("rescaledHgg_histos.root","RECREATE");
   outputFile.cd();
-  if(HggCatType == "MVA") nCats = 5;
+  if(HggCatType == "MVA_8TeV") nCats = 5;
   for(int iCat = 0; iCat < nCats; ++iCat)
   {
     SingleCat[iCat]->Write();
@@ -807,6 +941,11 @@ Hgg_measuredDiff_stat[iTrial*nCats+iCat]->Fill(mass*sqrt(f_stat_Trial_ET[pho1Cat
 
     Hgg_HTvsET1pET2[iCat]->Write();
 
+    Hgg_original_pTLow[iCat]->Write();
+    Hgg_original_pTHigh[iCat]->Write();
+    Hgg_measuredDiff_pTLow[iCat]->Write();
+    Hgg_measuredDiff_pTHigh[iCat]->Write();
+
     for(unsigned int posVec = 0; posVec< HtBinEdges.size()-1; ++posVec){
       Hgg_HT_HT.at(posVec)[iCat]->Write();
       Hgg_HT_ET1ET2.at(posVec)[iCat]->Write();
@@ -828,6 +967,8 @@ Hgg_measuredDiff_stat[iTrial*nCats+iCat]->Fill(mass*sqrt(f_stat_Trial_ET[pho1Cat
     for(int iCat = 0; iCat < nCats; ++iCat)
     {
       Hgg_measuredDiff_stat[iTrial*nCats+iCat]->Write();  
+      Hgg_measuredDiff_stat_pTLow[iTrial*nCats+iCat]->Write();  
+      Hgg_measuredDiff_stat_pTHigh[iTrial*nCats+iCat]->Write();  
     }
   }
   outputFile.Close();
@@ -881,25 +1022,31 @@ int GetSingleCategory(const float& scEta1, const float& R91)
 
 
 
-int GetMVAcat(const float& dipho_mva){
-  /*
-  if( dipho_mva > 0.91) return 0;
+int GetMVAcat_7TeV(const float& dipho_mva){
+  // 0.93, 0.85, 0.70, 0.19
+  if( dipho_mva > 0.93) return 0;
 
-  if( dipho_mva > 0.79 && dipho_mva < 0.91 ) return 1;
+  if( dipho_mva > 0.85 && dipho_mva < 0.93 ) return 1;
 
-  if( dipho_mva > 0.49 && dipho_mva < 0.79 ) return 2;
+  if( dipho_mva > 0.70 && dipho_mva < 0.85 ) return 2;
 
-  if( dipho_mva > -0.05 && dipho_mva < 0.50 ) return 3;
-  */
-  if( dipho_mva > 0.915) return 0;
+  if( dipho_mva > 0.19 && dipho_mva < 0.70 ) return 3;
 
-  if( dipho_mva > 0.75 && dipho_mva < 0.915 ) return 1;
+  return -1;
+}
 
-  if( dipho_mva > 0.52 && dipho_mva < 0.75 ) return 2;
 
-  if( dipho_mva > 0.13 && dipho_mva < 0.52 ) return 3;
+int GetMVAcat_8TeV(const float& dipho_mva){
+  // 0.76,0.36,0.00,-0.42,-0.78
+  if( dipho_mva > 0.76) return 0;
 
-  if( dipho_mva > -0.4 && dipho_mva < 0.13 ) return 4;
+  if( dipho_mva > 0.36 && dipho_mva < 0.76 ) return 1;
+
+  if( dipho_mva > 0.00 && dipho_mva < 0.36 ) return 2;
+
+  if( dipho_mva > -0.42 && dipho_mva < 0.00 ) return 3;
+
+  if( dipho_mva > -0.78 && dipho_mva < -0.42 ) return 4;
 
   return -1;
 }
