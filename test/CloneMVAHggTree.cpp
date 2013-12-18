@@ -26,6 +26,7 @@
 #include <iomanip>
 #include <string>
 #include <sstream>
+#include <fstream>
 #include <ctime>
 #include <map>
 #include <algorithm>
@@ -42,9 +43,23 @@ int main()
 {
   int nSamples = 1;
 
+  std::string type = "8TeVCiC";
+  //std::string type = "8TeVMVA";
+  //std::string type = "7TeVCiC";
+  //std::string type = "7TeVMVA";
+
+    std::string process = "125500";
+  //  std::string process = "125400";
+  //  std::string process = "125100";
+  //  std::string process = "125000";
+
   //------------
   // input trees
-  TFile* f = new TFile("../data/opttree_8TeV_bis.root", "read");
+  TFile* f;
+  if(type == "8TeVCiC") f = new TFile("../data/Hgg_signalTrees/jackCiC_8TeV.root", "read");
+  if(type == "7TeVCiC") f = new TFile("../data/Hgg_signalTrees/jackCiC_7TeV.root", "read");
+  if(type == "8TeVMVA") f = new TFile("../data/Hgg_signalTrees/jackMVA_8TeV.root", "read");
+  if(type == "7TeVMVA") f = new TFile("../data/Hgg_signalTrees/jackMVA_7TeV.root", "read");
   TTree** trees = new TTree*[nSamples];
   trees[0] = (TTree*)f->Get("opttree");
   
@@ -52,6 +67,7 @@ int main()
   float full_weight;
   float full_cat;
   float dipho_mva;
+  float dipho_pt;
   float mass;
   float et1, et2, eta1, eta2, r91, r92;
   
@@ -62,6 +78,7 @@ int main()
     trees[iSample]->SetBranchStatus("full_weight", 1);    trees[iSample]->SetBranchAddress("full_weight", &full_weight);
     trees[iSample]->SetBranchStatus("full_cat", 1);       trees[iSample]->SetBranchAddress("full_cat", &full_cat);
     trees[iSample]->SetBranchStatus("dipho_mva", 1);      trees[iSample]->SetBranchAddress("dipho_mva", &dipho_mva);
+    trees[iSample]->SetBranchStatus("dipho_pt", 1);      trees[iSample]->SetBranchAddress("dipho_pt", &dipho_pt);
     trees[iSample]->SetBranchStatus("mass", 1);           trees[iSample]->SetBranchAddress("mass", &mass);
     trees[iSample]->SetBranchStatus("et1", 1);             trees[iSample]->SetBranchAddress("et1", &et1);
     trees[iSample]->SetBranchStatus("et2", 1);             trees[iSample]->SetBranchAddress("et2", &et2);
@@ -91,7 +108,7 @@ int main()
       trees[iSample]->GetEntry(entry);
 
       //      if(itype < -12499) std::cout << " itype = " << itype << std::endl;
-            if(itype == -125500) newTree->Fill();
+      //            if(itype == -125500) newTree->Fill();
       //      if(itype == -125400) newTree->Fill();
       //      if(itype == -125100) newTree->Fill();
       //      if(itype == -125000) newTree->Fill();
@@ -100,19 +117,31 @@ int main()
 
       //      std::cout << " et1 = " << et1 << std::endl; 
       
+
+      if(itype == (-1. * atof(process.c_str())) ) newTree->Fill();
+
     }
 
 
-  
-  TFile outputFile("copiaHgg_MVA_125500.root","RECREATE");
-  outputFile.cd();
+//  TFile* f = new TFile("../data/Hgg_signalTrees/Hgg_Dump_CiC_8TeV.root", "read");
+//   TFile* f = new TFile("../data/Hgg_signalTrees/Hgg_Dump_CiC_7TeV.root", "read"); 
+//   TFile* f = new TFile("../data/Hgg_signalTrees/Hgg_Dump_MVA_8TeV.root", "read"); 
+//   TFile* f = new TFile("../data/Hgg_signalTrees/Hgg_Dump_MVA_7TeV.root", "read");   
 
+  TFile* outputFile;
+  if(type == "8TeVCiC") outputFile = new TFile(("../data/Hgg_signalTrees/Hgg_Dump_CiC_8TeV_"+process+".root").c_str(),"RECREATE");
+  if(type == "7TeVCiC") outputFile = new TFile(("../data/Hgg_signalTrees/Hgg_Dump_CiC_7TeV_"+process+".root").c_str(),"RECREATE");
+  if(type == "8TeVMVA") outputFile = new TFile(("../data/Hgg_signalTrees/Hgg_Dump_MVA_8TeV_"+process+".root").c_str(),"RECREATE");
+  if(type == "7TeVMVA") outputFile = new TFile(("../data/Hgg_signalTrees/Hgg_Dump_MVA_7TeV_"+process+".root").c_str(),"RECREATE");
+  
+  outputFile->cd();
+  
   newTree->SetName("opttree");
   newTree->Print();
   newTree->AutoSave();
   newTree->Write();
-  outputFile.Close();
-
+  outputFile->Close();
+  
   return 0;
 }
 
